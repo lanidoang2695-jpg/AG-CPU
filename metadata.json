@@ -1,0 +1,6 @@
+{
+  "name": "AG CPU",
+  "description": "High-Performance System Hardware Analyzer, Gaming Booster, and Real-time Network Stability Monitor built for Android, conforming to professional engineering standards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
