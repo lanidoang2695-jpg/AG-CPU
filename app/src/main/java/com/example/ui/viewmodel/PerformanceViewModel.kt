@@ -137,6 +137,27 @@ class PerformanceViewModel(
         _selectedNetworkMode.value = mode
     }
 
+    private val _networkStabilizerActive = MutableStateFlow(false)
+    val networkStabilizerActive = _networkStabilizerActive.asStateFlow()
+
+    private val _lowMsOptimizerActive = MutableStateFlow(false)
+    val lowMsOptimizerActive = _lowMsOptimizerActive.asStateFlow()
+
+    private val _networkBandLockActive = MutableStateFlow(false)
+    val networkBandLockActive = _networkBandLockActive.asStateFlow()
+
+    fun toggleNetworkStabilizer() {
+        _networkStabilizerActive.value = !_networkStabilizerActive.value
+    }
+
+    fun toggleLowMsOptimizer() {
+        _lowMsOptimizerActive.value = !_lowMsOptimizerActive.value
+    }
+
+    fun toggleNetworkBandLock() {
+        _networkBandLockActive.value = !_networkBandLockActive.value
+    }
+
     // Background jobs
     private var statsPollingJob: Job? = null
     private var fpsTrackingJob: Job? = null
@@ -365,6 +386,15 @@ class PerformanceViewModel(
             val profile = repository.getProfileByPackage(packageName)
             if (profile != null) {
                 repository.updateProfile(profile.copy(mode = mode))
+            }
+        }
+    }
+
+    fun changeProfileFpsTarget(packageName: String, fps: Int) {
+        viewModelScope.launch {
+            val profile = repository.getProfileByPackage(packageName)
+            if (profile != null) {
+                repository.updateProfile(profile.copy(customFpsTarget = fps))
             }
         }
     }

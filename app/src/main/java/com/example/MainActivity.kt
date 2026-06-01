@@ -25,6 +25,7 @@ import com.example.data.AppDatabase
 import com.example.data.GameRepository
 import com.example.ui.screens.BoosterOverlay
 import com.example.ui.screens.DashboardScreen
+import com.example.ui.screens.DeepInfoScreen
 import com.example.ui.screens.GamingBoosterScreen
 import com.example.ui.screens.NetworkScreen
 import com.example.ui.theme.*
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
 
 enum class NavigationTab(val title: String, val icon: ImageVector, val tag: String) {
     DASHBOARD("DYNAMIC SPEC", Icons.Default.Home, "tab_dashboard"),
+    SYSTEM("DEEP INFO", Icons.Default.Info, "tab_system"),
     NETWORK("NET DIAGS", Icons.Default.Settings, "tab_network"),
     BOOSTER("GAME ENGINE", Icons.Default.PlayArrow, "tab_booster")
 }
@@ -176,6 +178,7 @@ fun MainAppLayout(viewModel: PerformanceViewModel) {
             ) { tab ->
                 when (tab) {
                     NavigationTab.DASHBOARD -> DashboardScreen(viewModel = viewModel)
+                    NavigationTab.SYSTEM -> DeepInfoScreen(viewModel = viewModel)
                     NavigationTab.NETWORK -> NetworkScreen(viewModel = viewModel)
                     NavigationTab.BOOSTER -> GamingBoosterScreen(viewModel = viewModel)
                 }

@@ -135,7 +135,8 @@ fun GamingBoosterScreen(
                     profile = selectedGame!!,
                     selectedNetworkMode = selectedNetworkMode,
                     onNetworkModeChange = { netMode -> viewModel.setSelectedNetworkMode(netMode) },
-                    onModeChange = { mode -> viewModel.changeProfileMode(selectedGame!!.packageName, mode) }
+                    onModeChange = { mode -> viewModel.changeProfileMode(selectedGame!!.packageName, mode) },
+                    onFpsTargetChange = { fpsNum -> viewModel.changeProfileFpsTarget(selectedGame!!.packageName, fpsNum) }
                 )
             }
 
@@ -296,7 +297,8 @@ fun GameConfigurationPanel(
     profile: GameProfile,
     selectedNetworkMode: String,
     onNetworkModeChange: (String) -> Unit,
-    onModeChange: (String) -> Unit
+    onModeChange: (String) -> Unit,
+    onFpsTargetChange: (Int) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -397,6 +399,45 @@ fun GameConfigurationPanel(
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isNetSelected) NeonCyan else MutedSlate
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // FPS LOCK target
+            Text("FPS Target Speed Lock", fontSize = 10.sp, color = MutedSlate)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(60, 90, 120).forEach { fps ->
+                    val isFSelected = profile.customFpsTarget == fps
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .border(
+                                width = 1.dp,
+                                color = if (isFSelected) NeonGreen else DarkBorder.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .clickable { onFpsTargetChange(fps) },
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isFSelected) NeonGreen.copy(alpha = 0.08f) else DarkBackground.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "$fps FPS",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isFSelected) NeonGreen else MutedSlate
                             )
                         }
                     }

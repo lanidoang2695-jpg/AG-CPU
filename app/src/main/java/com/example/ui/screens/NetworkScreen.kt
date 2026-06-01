@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -44,6 +45,10 @@ fun NetworkScreen(
     val ipAddr by viewModel.ipAddress.collectAsState()
     val linkSpeed by viewModel.linkSpeedMbps.collectAsState()
     val pingHistory by viewModel.pingHistory.collectAsState()
+
+    val networkStabilizerActive by viewModel.networkStabilizerActive.collectAsState()
+    val lowMsOptimizerActive by viewModel.lowMsOptimizerActive.collectAsState()
+    val networkBandLockActive by viewModel.networkBandLockActive.collectAsState()
 
     // Animating circular pulse for active tests
     val infiniteTransition = rememberInfiniteTransition(label = "RadarPulse")
@@ -114,6 +119,193 @@ fun NetworkScreen(
                             Text("IP: $ipAddr", fontSize = 10.sp, color = MutedSlate, fontFamily = FontFamily.Monospace)
                             Text("Speed: $linkSpeed Mbps", fontSize = 10.sp, color = NeonGreen)
                         }
+                    }
+                }
+            }
+        }
+
+        // Network Stabilizer & Gaming Low-MS Engine Suite
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, NeonCyan.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
+                colors = CardDefaults.cardColors(containerColor = SurfaceSlate)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "GAMING NETWORK STABILIZER SUITE",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = NeonCyan,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 1. Low-MS Ping Lock Booster
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (lowMsOptimizerActive) NeonYellow.copy(alpha = 0.05f) else Color.Transparent)
+                            .clickable { viewModel.toggleLowMsOptimizer() }
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(CircleShape)
+                                    .background(if (lowMsOptimizerActive) NeonYellow.copy(alpha = 0.15f) else DarkBackground),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = if (lowMsOptimizerActive) NeonYellow else MutedSlate,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Low-MS Ping Lock Engine",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (lowMsOptimizerActive) NeonYellow else PureWhite
+                                )
+                                Text(
+                                    text = "Keeps wireless radio state fully awake & active during game workloads.",
+                                    fontSize = 8.sp,
+                                    color = MutedSlate
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = lowMsOptimizerActive,
+                            onCheckedChange = { viewModel.toggleLowMsOptimizer() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonYellow,
+                                checkedTrackColor = NeonYellow.copy(alpha = 0.3f),
+                                uncheckedThumbColor = MutedSlate,
+                                uncheckedTrackColor = DarkBackground
+                            ),
+                            modifier = Modifier.scale(0.8f)
+                        )
+                    }
+
+                    Divider(color = DarkBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+
+                    // 2. Dynamic Connection Jitter Stabilizer
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (networkStabilizerActive) NeonGreen.copy(alpha = 0.05f) else Color.Transparent)
+                            .clickable { viewModel.toggleNetworkStabilizer() }
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(CircleShape)
+                                    .background(if (networkStabilizerActive) NeonGreen.copy(alpha = 0.15f) else DarkBackground),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = if (networkStabilizerActive) NeonGreen else MutedSlate,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Link Jitter & Deficit Stabilizer",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (networkStabilizerActive) NeonGreen else PureWhite
+                                )
+                                Text(
+                                    text = "Normalizes throughput jitter & runs lightweight DNS optimization.",
+                                    fontSize = 8.sp,
+                                    color = MutedSlate
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = networkStabilizerActive,
+                            onCheckedChange = { viewModel.toggleNetworkStabilizer() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonGreen,
+                                checkedTrackColor = NeonGreen.copy(alpha = 0.3f),
+                                uncheckedThumbColor = MutedSlate,
+                                uncheckedTrackColor = DarkBackground
+                            ),
+                            modifier = Modifier.scale(0.8f)
+                        )
+                    }
+
+                    Divider(color = DarkBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+
+                    // 3. Bandwidth Connection State Lock
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (networkBandLockActive) NeonOrange.copy(alpha = 0.05f) else Color.Transparent)
+                            .clickable { viewModel.toggleNetworkBandLock() }
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(CircleShape)
+                                    .background(if (networkBandLockActive) NeonOrange.copy(alpha = 0.15f) else DarkBackground),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null,
+                                    tint = if (networkBandLockActive) NeonOrange else MutedSlate,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Internet Protocol Band Lock",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (networkBandLockActive) NeonOrange else PureWhite
+                                )
+                                Text(
+                                    text = "Locks channel priority & prevents background app synchronization.",
+                                    fontSize = 8.sp,
+                                    color = MutedSlate
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = networkBandLockActive,
+                            onCheckedChange = { viewModel.toggleNetworkBandLock() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonOrange,
+                                checkedTrackColor = NeonOrange.copy(alpha = 0.3f),
+                                uncheckedThumbColor = MutedSlate,
+                                uncheckedTrackColor = DarkBackground
+                            ),
+                            modifier = Modifier.scale(0.8f)
+                        )
                     }
                 }
             }
