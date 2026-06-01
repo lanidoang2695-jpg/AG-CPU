@@ -159,19 +159,25 @@ class PerformanceViewModel(
     }
 
     init {
-        // Probe static screen refresh attributes
-        val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            context.display
-        } else {
-            @Suppress("DEPRECATION") wm.defaultDisplay
+        // Probe static screen refresh attributes safely
+        var displayRate = 60
+        var displayRes = "1080 x 2400"
+        try {
+            val dm = context.getSystemService(Context.DISPLAY_SERVICE) as? android.hardware.display.DisplayManager
+            val display = dm?.getDisplay(android.view.Display.DEFAULT_DISPLAY) ?: run {
+                val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                @Suppress("DEPRECATION") wm.defaultDisplay
+            }
+            displayRate = display?.refreshRate?.toInt() ?: 60
+            val metrics = DisplayMetrics()
+            @Suppress("DEPRECATION")
+            display?.getRealMetrics(metrics)
+            displayRes = "${metrics.widthPixels} x ${metrics.heightPixels}"
+        } catch (e: Exception) {
+            Log.e("PerformanceViewModel", "Error getting display info: ${e.message}")
         }
-        screenRefreshRate = display?.refreshRate?.toInt() ?: 60
-
-        val metrics = DisplayMetrics()
-        @Suppress("DEPRECATION")
-        display?.getRealMetrics(metrics)
-        screenResolution = "${metrics.widthPixels} x ${metrics.heightPixels}"
+        screenRefreshRate = displayRate
+        screenResolution = displayRes
 
         // Register battery metrics receiver
         context.registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
