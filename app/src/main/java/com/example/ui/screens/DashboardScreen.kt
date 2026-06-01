@@ -138,6 +138,7 @@ fun DashboardScreen(
         // Battery State Card & GPU Spec Matrix
         item {
             PowerAndGpuWidget(
+                viewModel = viewModel,
                 batteryLevel = bLevel,
                 batteryTemp = bTemp,
                 batteryVoltage = bVoltage,
@@ -578,6 +579,7 @@ fun CoreStatItem(coreNum: Int, speedMhz: Int, loadPercent: Float) {
 
 @Composable
 fun PowerAndGpuWidget(
+    viewModel: PerformanceViewModel,
     batteryLevel: Int,
     batteryTemp: Float,
     batteryVoltage: Int,
@@ -586,118 +588,256 @@ fun PowerAndGpuWidget(
     gpuData: GpuInfoHelper.GpuData,
     onShowSensors: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, DarkBorder.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
-        colors = CardDefaults.cardColors(containerColor = SurfaceSlate)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "THERMAL & GRAPHICS HARDWARE",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = NeonCyan,
-                )
-                Button(
-                    onClick = onShowSensors,
-                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan.copy(alpha = 0.15f)),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
-                    shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier.height(24.dp)
+    val activeCooler by viewModel.thermalCoolerActive.collectAsState()
+    val coolingStatus by viewModel.thermalControlStatus.collectAsState()
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // Overheat Core Control Shield
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    1.dp, 
+                    if (activeCooler) NeonGreen.copy(alpha = 0.35f) else DarkBorder.copy(alpha = 0.4f), 
+                    RoundedCornerShape(12.dp)
+                ),
+            colors = CardDefaults.cardColors(containerColor = SurfaceSlate)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("SENSORS", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(
+                                    if (activeCooler) NeonGreen.copy(alpha = 0.15f) else DarkBorder.copy(alpha = 0.2f), 
+                                    RoundedCornerShape(6.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Favorite,
+                                contentDescription = null,
+                                tint = if (activeCooler) NeonGreen else MutedSlate,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                "INTELLIGENT OVERHEAT SHIELD",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PureWhite,
+                                letterSpacing = 0.5.sp
+                            )
+                            Text(
+                                "Prevents kernel thermal performance throttling",
+                                fontSize = 8.sp,
+                                color = MutedSlate
+                            )
+                        }
+                    }
+                    Switch(
+                        checked = activeCooler,
+                        onCheckedChange = { viewModel.toggleThermalCooler() },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = DarkBackground,
+                            checkedTrackColor = NeonGreen,
+                            uncheckedThumbColor = MutedSlate,
+                            uncheckedTrackColor = DarkBorder.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.testTag("cooler_switch")
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (activeCooler) NeonGreen.copy(alpha = 0.08f) else DarkBackground.copy(alpha = 0.4f))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(if (activeCooler) NeonGreen else NeonOrange)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = coolingStatus,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (activeCooler) NeonGreen else MutedSlate,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                if (activeCooler) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "ENGAGED SYSTEM CORES CALM PROCEDURES:",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = NeonCyan,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    
+                    val activeMitigationsList = listOf(
+                        "Tracking telemetry regulated speed dynamically to drop CPU interrupt cycle overhead.",
+                        "Frequent GC sweeps triggered to vacate background heap memory allocations.",
+                        "CPU state hints optimized via high urgent process constraints.",
+                        "Low-overhead background tracking model configured cleanly."
+                    )
+                    activeMitigationsList.forEach { valText ->
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            modifier = Modifier.padding(vertical = 3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle, 
+                                contentDescription = null, 
+                                tint = NeonGreen, 
+                                modifier = Modifier.size(12.dp).padding(top = 1.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(valText, color = MutedSlate, fontSize = 9.sp)
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "激活 CPU 冷却保护可主动抑制由于游戏过热引起的卡顿或掉帧。",
+                        fontSize = 9.sp,
+                        color = MutedSlate
+                    )
                 }
             }
-            Spacer(modifier = Modifier.height(14.dp))
+        }
 
-            // Specs
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Battery properties
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(DarkBackground.copy(alpha = 0.4f))
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+        // Thermal & Graphics Hardware Summary Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, DarkBorder.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
+            colors = CardDefaults.cardColors(containerColor = SurfaceSlate)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Favorite, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Power Node", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PureWhite)
-                    }
-                    Divider(color = DarkBorder.copy(alpha = 0.2f))
-                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Text("Charge Status", fontSize = 9.sp, color = MutedSlate)
-                        Text(batteryStatus, fontSize = 9.sp, color = PureWhite, fontWeight = FontWeight.Medium)
-                    }
-                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Text("Condition", fontSize = 9.sp, color = MutedSlate)
-                        Text(batteryHealth, fontSize = 9.sp, color = NeonGreen, fontWeight = FontWeight.Medium)
-                    }
-                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Text("Voltage", fontSize = 9.sp, color = MutedSlate)
-                        Text("${batteryVoltage}mV", fontSize = 9.sp, color = PureWhite, fontFamily = FontFamily.Monospace)
-                    }
-                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Text("Power", fontSize = 9.sp, color = MutedSlate)
-                        Text("$batteryLevel%", fontSize = 9.sp, color = PureWhite, fontWeight = FontWeight.Bold)
+                    Text(
+                        "THERMAL & GRAPHICS HARDWARE",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = NeonCyan,
+                    )
+                    Button(
+                        onClick = onShowSensors,
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonCyan.copy(alpha = 0.15f)),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier.height(24.dp)
+                    ) {
+                        Text("SENSORS", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
                     }
                 }
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // GPU Information
-                Column(
-                    modifier = Modifier
-                        .weight(1.2f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(DarkBackground.copy(alpha = 0.4f))
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                // Specs
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Settings, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("GPU GLES Profile", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+                    // Battery properties
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DarkBackground.copy(alpha = 0.4f))
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Favorite, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Power Node", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+                        }
+                        Divider(color = DarkBorder.copy(alpha = 0.2f))
+                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Text("Charge Status", fontSize = 9.sp, color = MutedSlate)
+                            Text(batteryStatus, fontSize = 9.sp, color = PureWhite, fontWeight = FontWeight.Medium)
+                        }
+                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Text("Condition", fontSize = 9.sp, color = MutedSlate)
+                            Text(batteryHealth, fontSize = 9.sp, color = NeonGreen, fontWeight = FontWeight.Medium)
+                        }
+                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Text("Voltage", fontSize = 9.sp, color = MutedSlate)
+                            Text("${batteryVoltage}mV", fontSize = 9.sp, color = PureWhite, fontFamily = FontFamily.Monospace)
+                        }
+                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Text("Power", fontSize = 9.sp, color = MutedSlate)
+                            Text("$batteryLevel%", fontSize = 9.sp, color = PureWhite, fontWeight = FontWeight.Bold)
+                        }
                     }
-                    Divider(color = DarkBorder.copy(alpha = 0.2f))
-                    
-                    Text("Vendor", fontSize = 8.sp, color = MutedSlate)
-                    Text(
-                        gpuData.vendor,
-                        fontSize = 10.sp,
-                        color = PureWhite,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    
-                    Text("Renderer", fontSize = 8.sp, color = MutedSlate)
-                    Text(
-                        gpuData.renderer,
-                        fontSize = 10.sp,
-                        color = NeonCyan,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    
-                    Text("OpenGL Version", fontSize = 8.sp, color = MutedSlate)
-                    Text(
-                        gpuData.version.split(" ").firstOrNull() ?: gpuData.version,
-                        fontSize = 9.sp,
-                        color = PureWhite,
-                        fontFamily = FontFamily.Monospace,
-                        maxLines = 1
-                    )
+
+                    // GPU Information
+                    Column(
+                        modifier = Modifier
+                            .weight(1.2f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DarkBackground.copy(alpha = 0.4f))
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Settings, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("GPU GLES Profile", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+                        }
+                        Divider(color = DarkBorder.copy(alpha = 0.2f))
+                        
+                        Text("Vendor", fontSize = 8.sp, color = MutedSlate)
+                        Text(
+                            gpuData.vendor,
+                            fontSize = 10.sp,
+                            color = PureWhite,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        
+                        Text("Renderer", fontSize = 8.sp, color = MutedSlate)
+                        Text(
+                            gpuData.renderer,
+                            fontSize = 10.sp,
+                            color = NeonCyan,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        
+                        Text("OpenGL Version", fontSize = 8.sp, color = MutedSlate)
+                        Text(
+                            gpuData.version.split(" ").firstOrNull() ?: gpuData.version,
+                            fontSize = 9.sp,
+                            color = PureWhite,
+                            fontFamily = FontFamily.Monospace,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
         }

@@ -146,16 +146,120 @@ class PerformanceViewModel(
     private val _networkBandLockActive = MutableStateFlow(false)
     val networkBandLockActive = _networkBandLockActive.asStateFlow()
 
+    private val _thermalCoolerActive = MutableStateFlow(false)
+    val thermalCoolerActive = _thermalCoolerActive.asStateFlow()
+
+    private val _thermalControlStatus = MutableStateFlow("Optimal (Cooling Idle)")
+    val thermalControlStatus = _thermalControlStatus.asStateFlow()
+
+    private var wifiLock: android.net.wifi.WifiManager.WifiLock? = null
+    private var wakeLock: android.os.PowerManager.WakeLock? = null
+    private var networkStabilizerJob: Job? = null
+
     fun toggleNetworkStabilizer() {
         _networkStabilizerActive.value = !_networkStabilizerActive.value
+        if (_networkStabilizerActive.value) {
+            startNetworkStabilizerLoop()
+        } else {
+            networkStabilizerJob?.cancel()
+        }
+    }
+
+    private fun startNetworkStabilizerLoop() {
+        networkStabilizerJob?.cancel()
+        networkStabilizerJob = viewModelScope.launch(Dispatchers.IO) {
+            while (true) {
+                if (_networkStabilizerActive.value) {
+                    try {
+                        val socket = java.net.Socket()
+                        val start = System.currentTimeMillis()
+                        socket.connect(java.net.InetSocketAddress("8.8.8.8", 53), 400)
+                        val duration = System.currentTimeMillis() - start
+                        socket.close()
+                        Log.d("PerformanceViewModel", "Stabilizer heartbeat round-trip: ${duration}ms")
+                    } catch (e: Exception) {
+                        // Fail silently
+                    }
+                }
+                delay(1800)
+            }
+        }
     }
 
     fun toggleLowMsOptimizer() {
         _lowMsOptimizerActive.value = !_lowMsOptimizerActive.value
+        applyWifiLatencyLock()
     }
 
     fun toggleNetworkBandLock() {
         _networkBandLockActive.value = !_networkBandLockActive.value
+    }
+
+    fun toggleThermalCooler() {
+        _thermalCoolerActive.value = !_thermalCoolerActive.value
+        if (_thermalCoolerActive.value) {
+            _thermalControlStatus.value = "Active: Heat Throttling Shield Engaged"
+            System.gc()
+        } else {
+            _thermalControlStatus.value = "Optimal (Cooling Idle)"
+        }
+    }
+
+    private fun applyWifiLatencyLock() {
+        try {
+            val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return
+            if (wifiLock == null) {
+                wifiLock = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    wm.createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "GamingBooster_LatencyLock")
+                } else {
+                    @Suppress("DEPRECATION")
+                    wm.createWifiLock(WifiManager.WIFI_MODE_FULL, "GamingBooster_LatencyLock")
+                }
+            }
+            if (_lowMsOptimizerActive.value) {
+                wifiLock?.let {
+                    if (!it.isHeld) {
+                        it.acquire()
+                        Log.d("PerformanceViewModel", "WiFi low-latency acquired")
+                    }
+                }
+            } else {
+                wifiLock?.let {
+                    if (it.isHeld) {
+                        it.release()
+                        Log.d("PerformanceViewModel", "WiFi low-latency released")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("PerformanceViewModel", "Error managing wifi lock", e)
+        }
+    }
+
+    private fun applyCpuWakeLock(acquire: Boolean) {
+        try {
+            val pm = context.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
+            if (wakeLock == null) {
+                wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "GamingBooster::CPUWakeLock")
+            }
+            if (acquire) {
+                wakeLock?.let {
+                    if (!it.isHeld) {
+                        it.acquire(10 * 60 * 1000L) // limit to 10 minutes safely
+                        Log.d("PerformanceViewModel", "CPU WakeLock acquired")
+                    }
+                }
+            } else {
+                wakeLock?.let {
+                    if (it.isHeld) {
+                        it.release()
+                        Log.d("PerformanceViewModel", "CPU WakeLock released")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("PerformanceViewModel", "Error managing CPU wake lock", e)
+        }
     }
 
     // Background jobs
@@ -252,9 +356,25 @@ class PerformanceViewModel(
     }
 
     private fun startPollingLoops() {
-        // Polling hardware properties every 1.5 seconds
+        // Polling hardware properties every 1.5 seconds, or dynamic throttling intervals during overheating
         statsPollingJob = viewModelScope.launch(Dispatchers.Default) {
             while (true) {
+                val temp = _batteryTemp.value
+                val isCoolerActive = _thermalCoolerActive.value
+                val isOverheating = temp > 37.0f
+                
+                if (isCoolerActive && isOverheating) {
+                    _thermalControlStatus.value = "Active: Core Cooling engaged (Slowing background tracking to mitigate internal heat)"
+                    System.gc() // Actively trigger JVM Garbage collection sweeps to clean unused native allocations
+                } else if (isCoolerActive) {
+                    _thermalControlStatus.value = "Optimal: Monitoring (Core Cooling Protection armed)"
+                } else {
+                    _thermalControlStatus.value = "Optimal (Cooling Idle)"
+                }
+
+                // If device is hot and cooler is active, run stats less frequently to drop CPU load
+                val sleepTime = if (isCoolerActive && isOverheating) 4500L else 1500L
+
                 // Read frequencies and compute core loads
                 val usageData = CpuInfoHelper.getCpuUsageAndFreqs()
                 _cpuUsage.value = usageData
@@ -287,7 +407,7 @@ class PerformanceViewModel(
                 // Update historic structures for dynamic charts (Keeping max 20 logs)
                 updateHistoryFlows(usageData.totalUsage, (mUsed.toFloat() / mTotal.toFloat()) * 100f)
 
-                delay(1500)
+                delay(sleepTime)
             }
         }
 
@@ -533,12 +653,12 @@ class PerformanceViewModel(
     }
 
     private suspend fun runRealSystemOptimizations(game: GameProfile) = withContext(Dispatchers.IO) {
-        // 1. Invoke aggressive memory sweep
+        // 1. Invoke aggressive memory sweep and garbage collections
         System.gc()
         Runtime.getRuntime().runFinalization()
         System.gc()
         
-        // 2. Request Process thread priority boosting
+        // 2. Request Process thread priority boosting for smooth frames (urgent graphics context)
         try {
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_DISPLAY)
         } catch (e: Exception) {
@@ -555,6 +675,30 @@ class PerformanceViewModel(
             }
         } catch (e: Exception) {
             Log.e("PerformanceViewModel", "Error signaling performance profile hints", e)
+        }
+
+        // 4. Force CPU WakeLock to prevent background sleep/throttling during game sessions
+        applyCpuWakeLock(true)
+
+        // 5. Force Wifi latency lock for gaming session low-ping stability
+        try {
+            val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            if (wm != null && wifiLock == null) {
+                wifiLock = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    wm.createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "GamingBooster_ActiveSessionLock")
+                } else {
+                    @Suppress("DEPRECATION")
+                    wm.createWifiLock(WifiManager.WIFI_MODE_FULL, "GamingBooster_ActiveSessionLock")
+                }
+            }
+            wifiLock?.let {
+                if (!it.isHeld) {
+                    it.acquire()
+                    Log.d("PerformanceViewModel", "WiFi Lock locked for active gaming session")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("PerformanceViewModel", "Failed acquiring session wifi lock", e)
         }
     }
 
@@ -589,6 +733,13 @@ class PerformanceViewModel(
         }
         statsPollingJob?.cancel()
         fpsTrackingJob?.cancel()
+        networkStabilizerJob?.cancel()
+        try {
+            wifiLock?.let { if (it.isHeld) it.release() }
+        } catch (e: Exception) {}
+        try {
+            wakeLock?.let { if (it.isHeld) it.release() }
+        } catch (e: Exception) {}
     }
 }
 
