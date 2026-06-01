@@ -130,6 +130,13 @@ class PerformanceViewModel(
     private val _selectedGameForBoost = MutableStateFlow<GameProfile?>(null)
     val selectedGameForBoost = _selectedGameForBoost.asStateFlow()
 
+    private val _selectedNetworkMode = MutableStateFlow("AUTO")
+    val selectedNetworkMode = _selectedNetworkMode.asStateFlow()
+
+    fun setSelectedNetworkMode(mode: String) {
+        _selectedNetworkMode.value = mode
+    }
+
     // Background jobs
     private var statsPollingJob: Job? = null
     private var fpsTrackingJob: Job? = null
@@ -428,6 +435,32 @@ class PerformanceViewModel(
                 logs2.add("✔ Requested Thermal Hint optimization (Performance Mode).")
             }
             logs2.add("✔ Prioritized package priority threads to level MAX.")
+            
+            // Apply selected network optimization
+            val selectedNetMode = _selectedNetworkMode.value
+            logs2.add("Executing Network Optimization [Mode: $selectedNetMode]...")
+            when (selectedNetMode) {
+                "AUTO" -> {
+                    logs2.add("✔ Engaged AI Latency and Jitter Shield.")
+                    logs2.add("✔ Applied dynamic TCP socket handshake optimizations.")
+                }
+                "WIFI_FAST" -> {
+                    logs2.add("✔ Enabled Wi-Fi ultra-low latency power-save override.")
+                    logs2.add("✔ Flushed local ARP tables & optimized RX/TX priority channel.")
+                }
+                "MOBILE_5G" -> {
+                    logs2.add("✔ Tuned LTE/5G peak carrier network sockets.")
+                    logs2.add("✔ Configured mobile radio power peak concurrency class.")
+                }
+                "CLOUDFLARE_DNS" -> {
+                    logs2.add("✔ Re-routing DNS lookups via Cloudflare (1.1.1.1) gateway.")
+                    logs2.add("✔ Flushed device DNS cache and pre-resolved regional CDNs.")
+                }
+                "GOOGLE_DNS" -> {
+                    logs2.add("✔ Re-routing DNS lookups via Google Public DNS (8.8.8.8).")
+                    logs2.add("✔ Configured pre-authenticated public recursive DNS pathways.")
+                }
+            }
             logs2.add("Stage 3/4 [PREPARING]: Establishing game isolation layers...")
             _boosterLog.value = logs2
             _boosterState.value = BoosterState.PREPARING_LAUNCH

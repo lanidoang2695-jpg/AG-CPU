@@ -38,6 +38,7 @@ fun GamingBoosterScreen(
     val allApps by viewModel.allProfilesList.collectAsState()
     val addedGames by viewModel.addedGamesList.collectAsState()
     val selectedGame by viewModel.selectedGameForBoost.collectAsState()
+    val selectedNetworkMode by viewModel.selectedNetworkMode.collectAsState()
 
     var showManageDeckDialog by remember { mutableStateOf(false) }
 
@@ -132,6 +133,8 @@ fun GamingBoosterScreen(
             item {
                 GameConfigurationPanel(
                     profile = selectedGame!!,
+                    selectedNetworkMode = selectedNetworkMode,
+                    onNetworkModeChange = { netMode -> viewModel.setSelectedNetworkMode(netMode) },
                     onModeChange = { mode -> viewModel.changeProfileMode(selectedGame!!.packageName, mode) }
                 )
             }
@@ -287,9 +290,12 @@ fun ActiveGameSelector(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GameConfigurationPanel(
     profile: GameProfile,
+    selectedNetworkMode: String,
+    onNetworkModeChange: (String) -> Unit,
     onModeChange: (String) -> Unit
 ) {
     Card(
@@ -352,6 +358,53 @@ fun GameConfigurationPanel(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Network Mode Selection
+            Text("Network Optimization Focus", fontSize = 10.sp, color = MutedSlate)
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                listOf(
+                    "AUTO" to "Auto Latency Shield",
+                    "WIFI_FAST" to "Wi-Fi Speed Mode",
+                    "MOBILE_5G" to "5G/LTE priority",
+                    "CLOUDFLARE_DNS" to "Cloudflare 1.1.1.1",
+                    "GOOGLE_DNS" to "Google 8.8.8.8"
+                ).forEach { (netModeCode, netModeLabel) ->
+                    val isNetSelected = selectedNetworkMode == netModeCode
+                    Card(
+                        modifier = Modifier
+                            .border(
+                                width = 1.dp,
+                                color = if (isNetSelected) NeonCyan else DarkBorder.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                            .clickable { onNetworkModeChange(netModeCode) },
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isNetSelected) NeonCyan.copy(alpha = 0.08f) else DarkBackground.copy(alpha = 0.3f)
+                        ),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = netModeLabel,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isNetSelected) NeonCyan else MutedSlate
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Performance spec listing
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Target Frame Rate Lock", fontSize = 10.sp, color = MutedSlate)
@@ -371,12 +424,26 @@ fun GameConfigurationPanel(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageGameDeckDialog(
     allAppsList: List<GameProfile>,
     onToggle: (GameProfile, Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
+    var searchQuery by remember { mutableStateOf("") }
+    
+    val filteredApps = remember(allAppsList, searchQuery) {
+        if (searchQuery.isBlank()) {
+            allAppsList
+        } else {
+            allAppsList.filter {
+                it.appName.contains(searchQuery, ignoreCase = true) ||
+                it.packageName.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -396,12 +463,44 @@ fun ManageGameDeckDialog(
                 Text("Register any on-board application into the AG CPU optimization profiles database.", fontSize = 10.sp, color = MutedSlate)
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Box(modifier = Modifier.height(300.dp)) {
-                    if (allAppsList.isEmpty()) {
-                        Text("No compatible launchable applications discovered.", color = MutedSlate, fontSize = 11.sp)
+                // Search field
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search apps...", fontSize = 11.sp, color = MutedSlate) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = PureWhite),
+                    singleLine = true,
+                    leadingIcon = {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = MutedSlate, modifier = Modifier.size(16.dp))
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = PureWhite,
+                        unfocusedTextColor = PureWhite,
+                        focusedBorderColor = NeonCyan,
+                        unfocusedBorderColor = DarkBorder,
+                        focusedContainerColor = DarkBackground.copy(alpha = 0.5f),
+                        unfocusedContainerColor = DarkBackground.copy(alpha = 0.3f)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Box(modifier = Modifier.height(260.dp)) {
+                    if (filteredApps.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = if (allAppsList.isEmpty()) "No compat launchable apps found." else "No matching apps found.",
+                                color = MutedSlate,
+                                fontSize = 11.sp
+                            )
+                        }
                     } else {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            items(allAppsList) { app ->
+                            items(filteredApps) { app ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
