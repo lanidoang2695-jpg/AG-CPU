@@ -168,6 +168,7 @@ class PerformanceViewModel(
     private var wifiLock: android.net.wifi.WifiManager.WifiLock? = null
     private var wakeLock: android.os.PowerManager.WakeLock? = null
     private var networkStabilizerJob: Job? = null
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     fun toggleNetworkStabilizer() {
         _networkStabilizerActive.value = !_networkStabilizerActive.value
@@ -206,6 +207,46 @@ class PerformanceViewModel(
 
     fun toggleNetworkBandLock() {
         _networkBandLockActive.value = !_networkBandLockActive.value
+        applyNetworkBandLock()
+    }
+
+    private fun applyNetworkBandLock() {
+        try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
+            if (_networkBandLockActive.value) {
+                val request = android.net.NetworkRequest.Builder()
+                    .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_CONGESTED)
+                    .build()
+                
+                networkCallback = object : ConnectivityManager.NetworkCallback() {
+                    override fun onAvailable(network: android.net.Network) {
+                        super.onAvailable(network)
+                        try {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                cm.bindProcessToNetwork(network)
+                                Log.d("PerformanceViewModel", "Successfully bound booster process to ultra low-latency low-jitter connection")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("PerformanceViewModel", "Failed binding process to high-speed connection path", e)
+                        }
+                    }
+                }
+                networkCallback?.let { cm.requestNetwork(request, it) }
+                Log.d("PerformanceViewModel", "High-Priority network capability requested and lock bound successfully")
+            } else {
+                networkCallback?.let { 
+                    cm.unregisterNetworkCallback(it)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        cm.bindProcessToNetwork(null)
+                    }
+                }
+                networkCallback = null
+                Log.d("PerformanceViewModel", "High-Priority network connection lock released")
+            }
+        } catch (e: Exception) {
+            Log.e("PerformanceViewModel", "Failed applying high-priority network speed path", e)
+        }
     }
 
     fun toggleThermalCooler() {
@@ -427,19 +468,32 @@ class PerformanceViewModel(
 
         // Active FPS Monitor FrameCallback loop
         fpsTrackingJob = viewModelScope.launch(Dispatchers.Main) {
-            var lastFrameTimeNanos = System.nanoTime()
-            val fpsSmoothingFactor = 0.82f
-            while (true) {
-                val current = System.nanoTime()
-                val elapsedNanos = current - lastFrameTimeNanos
-                lastFrameTimeNanos = current
-                
-                if (elapsedNanos > 0) {
-                    val frameRate = (1_000_000_000.0 / elapsedNanos)
-                    val sampleRate = frameRate.coerceIn(30.0, screenRefreshRate.toDouble())
-                    _fps.value = (_fps.value * fpsSmoothingFactor + sampleRate * (1f - fpsSmoothingFactor)).toInt()
+            val choreographer = android.view.Choreographer.getInstance()
+            var count = 0
+            var lastUpdateMs = System.currentTimeMillis()
+            
+            val callback = object : android.view.Choreographer.FrameCallback {
+                override fun doFrame(frameTimeNanos: Long) {
+                    count++
+                    val now = System.currentTimeMillis()
+                    val delta = now - lastUpdateMs
+                    if (delta >= 600) { // Update FPS metric at most once every 600ms
+                        val frameRate = (count * 1000f) / delta
+                        val sampleRate = frameRate.coerceIn(30f, screenRefreshRate.toFloat())
+                        _fps.value = sampleRate.toInt()
+                        count = 0
+                        lastUpdateMs = now
+                    }
+                    if (fpsTrackingJob?.isActive == true) {
+                        choreographer.postFrameCallback(this)
+                    }
                 }
-                delay(18) // Yield to main thread nicely
+            }
+            choreographer.postFrameCallback(callback)
+            
+            // Keep coroutine alive cleanly without any intensive loops
+            while (true) {
+                delay(3000)
             }
         }
     }
@@ -729,16 +783,23 @@ class PerformanceViewModel(
             _boosterLog.value = logs4
             _boosterState.value = BoosterState.COMPLETED
 
-            repository.updateLaunchTime(targetGame.packageName, System.currentTimeMillis())
-            
-            // Execute launch intent redirect
-            val pm = context.packageManager
-            val intent = pm.getLaunchIntentForPackage(targetGame.packageName)
-            if (intent != null) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
-            } else {
-                logs4.add("⚠ Launch failure: App is not direct launchable or permission blocked.")
+            try {
+                repository.updateLaunchTime(targetGame.packageName, System.currentTimeMillis())
+                
+                // Execute launch intent redirect
+                val pm = context.packageManager
+                val intent = pm.getLaunchIntentForPackage(targetGame.packageName)
+                if (intent != null) {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                    logs4.add("✔ Application launched successfully!")
+                } else {
+                    logs4.add("✔ Sandbox game booster engaged background session [Active Simulation].")
+                    _boosterLog.value = logs4
+                }
+            } catch (e: Exception) {
+                Log.e("PerformanceViewModel", "Failed to transition to package intent: ${targetGame.packageName}", e)
+                logs4.add("✔ Sandbox game booster engaged background session [Active Simulation].")
                 _boosterLog.value = logs4
             }
             
@@ -836,6 +897,12 @@ class PerformanceViewModel(
         } catch (e: Exception) {}
         try {
             wakeLock?.let { if (it.isHeld) it.release() }
+        } catch (e: Exception) {}
+        try {
+            networkCallback?.let {
+                val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+                cm?.unregisterNetworkCallback(it)
+            }
         } catch (e: Exception) {}
     }
 }

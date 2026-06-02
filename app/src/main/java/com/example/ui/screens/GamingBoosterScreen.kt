@@ -331,14 +331,14 @@ fun GameConfigurationPanel(
                         else -> NeonGreen
                     }
                     Card(
+                        onClick = { onModeChange(mode) },
                         modifier = Modifier
                             .weight(1f)
                             .border(
                                 width = 1.dp,
                                 color = if (isSelected) accentColor else DarkBorder.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(8.dp)
-                            )
-                            .clickable { onModeChange(mode) },
+                            ),
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected) accentColor.copy(alpha = 0.08f) else DarkBackground.copy(alpha = 0.3f)
                         )
@@ -378,13 +378,13 @@ fun GameConfigurationPanel(
                 ).forEach { (netModeCode, netModeLabel) ->
                     val isNetSelected = selectedNetworkMode == netModeCode
                     Card(
+                        onClick = { onNetworkModeChange(netModeCode) },
                         modifier = Modifier
                             .border(
                                 width = 1.dp,
                                 color = if (isNetSelected) NeonCyan else DarkBorder.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(20.dp)
-                            )
-                            .clickable { onNetworkModeChange(netModeCode) },
+                            ),
                         colors = CardDefaults.cardColors(
                             containerColor = if (isNetSelected) NeonCyan.copy(alpha = 0.08f) else DarkBackground.copy(alpha = 0.3f)
                         ),
@@ -417,14 +417,14 @@ fun GameConfigurationPanel(
                 listOf(60, 90, 120).forEach { fps ->
                     val isFSelected = profile.customFpsTarget == fps
                     Card(
+                        onClick = { onFpsTargetChange(fps) },
                         modifier = Modifier
                             .weight(1f)
                             .border(
                                 width = 1.dp,
                                 color = if (isFSelected) NeonGreen else DarkBorder.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(8.dp)
-                            )
-                            .clickable { onFpsTargetChange(fps) },
+                            ),
                         colors = CardDefaults.cardColors(
                             containerColor = if (isFSelected) NeonGreen.copy(alpha = 0.08f) else DarkBackground.copy(alpha = 0.3f)
                         )
