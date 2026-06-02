@@ -28,6 +28,7 @@ import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.DeepInfoScreen
 import com.example.ui.screens.GamingBoosterScreen
 import com.example.ui.screens.NetworkScreen
+import com.example.ui.screens.CacheCleanerScreen
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.PerformanceViewModel
 import com.example.ui.viewmodel.PerformanceViewModelFactory
@@ -58,7 +59,8 @@ enum class NavigationTab(val title: String, val icon: ImageVector, val tag: Stri
     DASHBOARD("DYNAMIC SPEC", Icons.Default.Home, "tab_dashboard"),
     SYSTEM("DEEP INFO", Icons.Default.Info, "tab_system"),
     NETWORK("NET DIAGS", Icons.Default.Settings, "tab_network"),
-    BOOSTER("GAME ENGINE", Icons.Default.PlayArrow, "tab_booster")
+    BOOSTER("GAME ENGINE", Icons.Default.PlayArrow, "tab_booster"),
+    CACHE("CACHE CLEAN", Icons.Default.Delete, "tab_cache")
 }
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -181,6 +183,7 @@ fun MainAppLayout(viewModel: PerformanceViewModel) {
                     NavigationTab.SYSTEM -> DeepInfoScreen(viewModel = viewModel)
                     NavigationTab.NETWORK -> NetworkScreen(viewModel = viewModel)
                     NavigationTab.BOOSTER -> GamingBoosterScreen(viewModel = viewModel)
+                    NavigationTab.CACHE -> CacheCleanerScreen(viewModel = viewModel)
                 }
             }
 
