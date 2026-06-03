@@ -116,7 +116,7 @@ fun BoosterOverlay(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "EXECUTING ADVANCED HARDWARE OVERCLOCK",
+                text = "MENJALANKAN OVERCLOCK HARDWARE TINGKAT LANJUT",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = MutedSlate,
@@ -141,22 +141,22 @@ fun BoosterOverlay(
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 StatusTick(
-                    label = "SCANNING",
+                    label = "PINDAI",
                     isActive = boosterState == PerformanceViewModel.BoosterState.SCANNING,
                     isDone = boosterState.ordinal > PerformanceViewModel.BoosterState.SCANNING.ordinal
                 )
                 StatusTick(
-                    label = "OPTIMIZING",
+                    label = "OPTIMALKAN",
                     isActive = boosterState == PerformanceViewModel.BoosterState.OPTIMIZING,
                     isDone = boosterState.ordinal > PerformanceViewModel.BoosterState.OPTIMIZING.ordinal
                 )
                 StatusTick(
-                    label = "PREPARING",
+                    label = "PERSIAPAN",
                     isActive = boosterState == PerformanceViewModel.BoosterState.PREPARING_LAUNCH,
                     isDone = boosterState.ordinal > PerformanceViewModel.BoosterState.PREPARING_LAUNCH.ordinal
                 )
                 StatusTick(
-                    label = "LAUNCHING",
+                    label = "MEMULAI",
                     isActive = boosterState == PerformanceViewModel.BoosterState.LAUNCHING,
                     isDone = boosterState.ordinal > PerformanceViewModel.BoosterState.LAUNCHING.ordinal
                 )
@@ -166,7 +166,7 @@ fun BoosterOverlay(
 
             // Live scrolling log terminal console
             Text(
-                "SYSTEM DIAGNOSTIC LOGS",
+                "LOG DIAGNOSTIK SISTEM",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 color = NeonYellow,

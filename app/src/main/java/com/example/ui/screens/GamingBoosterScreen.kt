@@ -67,7 +67,7 @@ fun GamingBoosterScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "GAMING BOOSTER ENGINE",
+                            text = "MESIN PEMACU GAME",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = NeonYellow,
@@ -75,7 +75,7 @@ fun GamingBoosterScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Optimize low-level hardware structures for high-performance mobile gaming.",
+                            text = "Optimalkan struktur koordinasi perangkat keras dasar untuk performa game maksimal.",
                             fontSize = 10.sp,
                             color = MutedSlate
                         )
@@ -114,9 +114,9 @@ fun GamingBoosterScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MutedSlate, modifier = Modifier.size(36.dp))
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text("No Games Registered", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+                        Text("Tidak Ada Game Terdaftar", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PureWhite)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Click '+' above to select apps for gaming optimizer configs.", fontSize = 10.sp, color = MutedSlate, textAlign = TextAlign.Center)
+                        Text("Ketuk '+' di atas untuk memilih aplikasi dan mengaktifkan optimasi performa game.", fontSize = 10.sp, color = MutedSlate, textAlign = TextAlign.Center)
                     }
                 }
             } else {
@@ -167,7 +167,7 @@ fun GamingBoosterScreen(
                         Icon(Icons.Default.PlayArrow, contentDescription = null, tint = NeonYellow, modifier = Modifier.size(22.dp))
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "RUN HARDWARE SPEED BOOST",
+                            text = "JALANKAN PEMACU PERFORMA",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Black,
                             color = NeonYellow,
@@ -202,7 +202,7 @@ fun ActiveGameSelector(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "ACTIVE GAMING PROFILES DECK",
+                "DECK PROFIL GAME AKTIF",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = NeonCyan,
@@ -273,7 +273,11 @@ fun ActiveGameSelector(
                                     .padding(horizontal = 8.dp, vertical = 3.dp)
                             ) {
                                 Text(
-                                    text = game.mode,
+                                    text = when (game.mode) {
+                                        "PERFORMANCE" -> "PERFORMA"
+                                        "BALANCED" -> "SEIMBANG"
+                                        else -> "HEMAT DAYA"
+                                    },
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = when (game.mode) {
@@ -308,7 +312,7 @@ fun GameConfigurationPanel(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "HARDWARE PROFILE: ${profile.appName.uppercase()}",
+                "PROPERTI HARDWARE: ${profile.appName.uppercase()}",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = NeonCyan,
@@ -317,7 +321,7 @@ fun GameConfigurationPanel(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Game Mode Toggle Cards
-            Text("Engine Balancing Profile", fontSize = 10.sp, color = MutedSlate)
+            Text("Profil Manajemen Daya CPU", fontSize = 10.sp, color = MutedSlate)
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -348,7 +352,11 @@ fun GameConfigurationPanel(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = mode,
+                                text = when (mode) {
+                                    "PERFORMANCE" -> "PERFORMA"
+                                    "BALANCED" -> "SEIMBANG"
+                                    else -> "HEMAT DAYA"
+                                },
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isSelected) accentColor else MutedSlate
@@ -361,7 +369,7 @@ fun GameConfigurationPanel(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Network Mode Selection
-            Text("Network Optimization Focus", fontSize = 10.sp, color = MutedSlate)
+            Text("Arah Optimasi Koneksi Stabil", fontSize = 10.sp, color = MutedSlate)
             Spacer(modifier = Modifier.height(8.dp))
             
             FlowRow(
@@ -370,11 +378,11 @@ fun GameConfigurationPanel(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 listOf(
-                    "AUTO" to "Auto Latency Shield",
-                    "WIFI_FAST" to "Wi-Fi Speed Mode",
-                    "MOBILE_5G" to "5G/LTE priority",
-                    "CLOUDFLARE_DNS" to "Cloudflare 1.1.1.1",
-                    "GOOGLE_DNS" to "Google 8.8.8.8"
+                    "AUTO" to "Pelindung Otomatis Latensi",
+                    "WIFI_FAST" to "Mode Kencang Wi-Fi",
+                    "MOBILE_5G" to "Prioritas Koneksi 5G/LTE",
+                    "CLOUDFLARE_DNS" to "DNS Cloudflare 1.1.1.1",
+                    "GOOGLE_DNS" to "DNS Google 8.8.8.8"
                 ).forEach { (netModeCode, netModeLabel) ->
                     val isNetSelected = selectedNetworkMode == netModeCode
                     Card(
@@ -408,7 +416,7 @@ fun GameConfigurationPanel(
             Spacer(modifier = Modifier.height(16.dp))
 
             // FPS LOCK target
-            Text("FPS Target Speed Lock", fontSize = 10.sp, color = MutedSlate)
+            Text("Kunci Bingkai Kecepatan Target (FPS)", fontSize = 10.sp, color = MutedSlate)
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -448,18 +456,18 @@ fun GameConfigurationPanel(
 
             // Performance spec listing
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Target Frame Rate Lock", fontSize = 10.sp, color = MutedSlate)
-                Text("${profile.customFpsTarget} FPS (OVR)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
+                Text("Kunci Bingkai Gambar Maks", fontSize = 10.sp, color = MutedSlate)
+                Text("${profile.customFpsTarget} FPS (KUNCI)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
             }
             Divider(color = DarkBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Memory Partition Cleaner", fontSize = 10.sp, color = MutedSlate)
-                Text("Active Auto", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
+                Text("Pembersih Memori Sisi Latar", fontSize = 10.sp, color = MutedSlate)
+                Text("Otomatis Aktif", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
             }
             Divider(color = DarkBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Process Thread Isolation Level", fontSize = 10.sp, color = MutedSlate)
-                Text("Thread MAX (SCHED_FIFO)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonYellow)
+                Text("Level Isolasi Utas Eksekusi", fontSize = 10.sp, color = MutedSlate)
+                Text("Maksimal Utas (SCHED_FIFO)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonYellow)
             }
         }
     }
@@ -489,26 +497,26 @@ fun ManageGameDeckDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("APPLY", color = NeonCyan, fontWeight = FontWeight.Bold)
+                Text("TERAPKAN", color = NeonCyan, fontWeight = FontWeight.Bold)
             }
         },
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.PlayArrow, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(24.dp))
                 Spacer(modifier = Modifier.width(10.dp))
-                Text("MANAGE GAME REGISTRY", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+                Text("KELOLA REFORMASI GAME", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PureWhite)
             }
         },
         text = {
             Column {
-                Text("Register any on-board application into the AG CPU optimization profiles database.", fontSize = 10.sp, color = MutedSlate)
+                Text("Daftarkan aplikasi apa pun ke dalam optimasi database performa CPU & GPU stabil.", fontSize = 10.sp, color = MutedSlate)
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Search field
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search apps...", fontSize = 11.sp, color = MutedSlate) },
+                    placeholder = { Text("Cari aplikasi...", fontSize = 11.sp, color = MutedSlate) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
@@ -534,7 +542,7 @@ fun ManageGameDeckDialog(
                     if (filteredApps.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                text = if (allAppsList.isEmpty()) "No compat launchable apps found." else "No matching apps found.",
+                                text = if (allAppsList.isEmpty()) "Tidak ada aplikasi terpasang yang kompatibel." else "Tidak ada aplikasi yang cocok.",
                                 color = MutedSlate,
                                 fontSize = 11.sp
                             )

@@ -97,14 +97,14 @@ fun CacheCleanerScreen(
                     ) {
                         Column {
                             Text(
-                                "INTELLIGENT MEMORY PURGE",
+                                "PEMBERSIHAN MEMORI PINTAR",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = NeonCyan,
                                 letterSpacing = 1.sp
                             )
                             Text(
-                                "Sanitize compiled caches, shades & temp variables",
+                                "Bersihkan cache sampah, shader & berkas sementara",
                                 fontSize = 8.sp,
                                 color = MutedSlate
                             )
@@ -127,7 +127,7 @@ fun CacheCleanerScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "Candidate Sweep Capacity",
+                        text = "Kapasitas Potensi Pembersihan",
                         fontSize = 10.sp,
                         color = MutedSlate
                     )
@@ -139,7 +139,7 @@ fun CacheCleanerScreen(
                         fontFamily = FontFamily.Monospace
                     )
                     Text(
-                        text = "Eliminating caches removes obsolete shaded resources, freeing Dalvik Heap memory and stopping UI stutter.",
+                        text = "Menghapus cache membersihkan file shader usang, membebaskan memori RAM/Dalvik Heap dan mencegah lag patah-patah.",
                         fontSize = 9.sp,
                         color = MutedSlate,
                         lineHeight = 13.sp,
@@ -169,7 +169,7 @@ fun CacheCleanerScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "PURGE INTERMINABLE CONSOLE",
+                                text = "KONSOL PROSES PEMBERSIHAN",
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = NeonCyan,
@@ -257,7 +257,7 @@ fun CacheCleanerScreen(
                     contentPadding = PaddingValues(12.dp)
                 ) {
                     Text(
-                        text = if (selectedPackages.size == allApps.size) "DESELECT ALL" else "SELECT ALL",
+                        text = if (selectedPackages.size == allApps.size) "BATALKAN SEMUA" else "PILIH SEMUA",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp
@@ -289,7 +289,7 @@ fun CacheCleanerScreen(
                         Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "START SANITIZATION",
+                            text = "MULAI PEMBERSIHAN",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
@@ -304,7 +304,7 @@ fun CacheCleanerScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Filter candidate packages...", fontSize = 10.sp, color = MutedSlate) },
+                placeholder = { Text("Cari nama aplikasi...", fontSize = 10.sp, color = MutedSlate) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
@@ -334,7 +334,7 @@ fun CacheCleanerScreen(
                         .padding(24.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No candidate packages matched filtering.", color = MutedSlate, fontSize = 11.sp)
+                    Text("Tidak ada aplikasi cocok dengan filter.", color = MutedSlate, fontSize = 11.sp)
                 }
             }
         } else {
@@ -411,7 +411,7 @@ fun CacheCleanerScreen(
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = if (appBytes > 0) "$sizeOnMb MB" else "CLEARED 0.0 MB",
+                            text = if (appBytes > 0) "$sizeOnMb MB" else "BERSIH 0.0 MB",
                             fontSize = 8.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (appBytes > 0) NeonCyan else NeonGreen,

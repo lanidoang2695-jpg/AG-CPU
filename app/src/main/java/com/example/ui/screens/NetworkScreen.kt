@@ -117,7 +117,7 @@ fun NetworkScreen(
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text("IP: $ipAddr", fontSize = 10.sp, color = MutedSlate, fontFamily = FontFamily.Monospace)
-                            Text("Speed: $linkSpeed Mbps", fontSize = 10.sp, color = NeonGreen)
+                            Text("Kecepatan: $linkSpeed Mbps", fontSize = 10.sp, color = NeonGreen)
                         }
                     }
                 }
@@ -134,7 +134,7 @@ fun NetworkScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "GAMING NETWORK STABILIZER SUITE",
+                        text = "STABILISATOR JARINGAN GAME",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = NeonCyan,
@@ -171,13 +171,13 @@ fun NetworkScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "Low-MS Ping Lock Engine",
+                                    text = "Mesin Kunci Ping Rendah (Low MS)",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (lowMsOptimizerActive) NeonYellow else PureWhite
                                 )
                                 Text(
-                                    text = "Keeps wireless radio state fully awake & active during game workloads.",
+                                    text = "Menjaga radio nirkabel tetap terjaga & aktif penuh selama game berlangsung.",
                                     fontSize = 8.sp,
                                     color = MutedSlate
                                 )
@@ -227,13 +227,13 @@ fun NetworkScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "Link Jitter & Deficit Stabilizer",
+                                    text = "Penstabil Jitter & Defisit Jaringan",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (networkStabilizerActive) NeonGreen else PureWhite
                                 )
                                 Text(
-                                    text = "Normalizes throughput jitter & runs lightweight DNS optimization.",
+                                    text = "Menormalkan jitter data & melakukan optimasi DNS yang lebih ringan.",
                                     fontSize = 8.sp,
                                     color = MutedSlate
                                 )
@@ -283,13 +283,13 @@ fun NetworkScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "Internet Protocol Band Lock",
+                                    text = "Kunci Band Protokol Internet",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (networkBandLockActive) NeonOrange else PureWhite
                                 )
                                 Text(
-                                    text = "Locks channel priority & prevents background app synchronization.",
+                                    text = "Mengunci prioritas saluran & memblokir sinkronisasi aplikasi latar belakang.",
                                     fontSize = 8.sp,
                                     color = MutedSlate
                                 )
@@ -326,7 +326,7 @@ fun NetworkScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "STABILITY PACKET ANALYZER",
+                        text = "ANALISATOR STABILITAS PAKET",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = NeonCyan,
@@ -364,11 +364,11 @@ fun NetworkScreen(
                                 if (isAnalyzing) {
                                     CircularProgressIndicator(color = NeonCyan, modifier = Modifier.size(24.dp), strokeWidth = 2.5.dp)
                                     Spacer(modifier = Modifier.height(6.dp))
-                                    Text("TESTING", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
+                                    Text("MENGUJI", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
                                 } else {
                                     Icon(Icons.Default.Refresh, contentDescription = null, tint = DarkBackground, modifier = Modifier.size(24.dp))
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text("RUN DIAGS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = DarkBackground)
+                                    Text("MULAI UJI", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = DarkBackground)
                                 }
                             }
                         }
@@ -377,9 +377,9 @@ fun NetworkScreen(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Text(
-                        text = if (isAnalyzing) "Conducting TCP latency handshaking & jitter evaluation..." 
-                               else if (report != null) "Last evaluation completed successfully."
-                               else "Press core trigger to begin testing network jitter, ping dropouts, and routing stability.",
+                        text = if (isAnalyzing) "Melakukan koneksi jabat tangan latensi TCP & evaluasi jitter..." 
+                               else if (report != null) "Evaluasi jaringan terakhir berhasil diselesaikan."
+                               else "Tekan tombol lingkaran untuk mulai mengetes jitter, ping terputus, dan stabilitas perutean.",
                         fontSize = 10.sp,
                         color = MutedSlate,
                         textAlign = TextAlign.Center
@@ -411,16 +411,16 @@ fun NetworkScreen(
                     // Grid metric values
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         PacketMetricItem(
-                            label = "PING ROTATION",
+                            label = "ROTASI PING",
                             value = "${currentReport.pingMs} ms",
                             subtext = "Target: <100ms",
                             color = if (currentReport.pingMs < 80) NeonGreen else NeonYellow,
                             modifier = Modifier.weight(1f)
                         )
                         PacketMetricItem(
-                            label = "JITTER SPREAD",
+                            label = "REMBATAN JITTER",
                             value = "${currentReport.jitterMs} ms",
-                            subtext = "Buffer: <15ms",
+                            subtext = "Batas aman: <15ms",
                             color = if (currentReport.jitterMs < 10) NeonCyan else NeonOrange,
                             modifier = Modifier.weight(1f)
                         )
@@ -428,14 +428,14 @@ fun NetworkScreen(
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         PacketMetricItem(
-                            label = "PACKET DROPOUT",
+                            label = "PAKET DROPOUT",
                             value = "${currentReport.packetLossPercent}%",
-                            subtext = "Allowed: <2%",
+                            subtext = "Ditoleransi: <2%",
                             color = if (currentReport.packetLossPercent <= 0) NeonGreen else CyberPink,
                             modifier = Modifier.weight(1f)
                         )
                         PacketMetricItem(
-                            label = "DNS LOOKUP TIME",
+                            label = "ALOKASI WAKTU DNS",
                             value = "${currentReport.dnsResponseTimeMs} ms",
                             subtext = "Google Public DNS",
                             color = if (currentReport.dnsResponseTimeMs < 50) NeonCyan else NeonYellow,
@@ -445,16 +445,16 @@ fun NetworkScreen(
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         PacketMetricItem(
-                            label = "DOWNLOAD DATA",
+                            label = "KECEPATAN UNDUH",
                             value = String.format("%.2f Mbps", currentReport.downloadSpeedMbps),
-                            subtext = "Real speed test",
+                            subtext = "Uji kecepatan asli",
                             color = NeonCyan,
                             modifier = Modifier.weight(1f)
                         )
                         PacketMetricItem(
-                            label = "EST. UPLOAD SPEED",
+                            label = "EST. KECEPATAN UNGGAH",
                             value = String.format("%.2f Mbps", currentReport.uploadSpeedMbps),
-                            subtext = "Upload baseline",
+                            subtext = "Batas awal unggah",
                             color = NeonYellow,
                             modifier = Modifier.weight(1f)
                         )
@@ -474,7 +474,7 @@ fun NetworkScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "HISTOGRAM LATENCY RECORDS",
+                            "REKOR HISTOGRAM LATENSI PING",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = NeonCyan
@@ -524,6 +524,15 @@ fun StabilityScoreWidget(
         else -> CyberPink
     }
 
+    val statusIndo = when (status) {
+        "Excellent" -> "SANGAT BAIK"
+        "Good" -> "BAIK"
+        "Moderate" -> "CUKUP"
+        "Poor" -> "BURUK"
+        "Scanning" -> "MEMINDAI"
+        else -> status.uppercase()
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -538,7 +547,7 @@ fun StabilityScoreWidget(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text("CONNECTION STABILITY SCORE", fontSize = 10.sp, color = MutedSlate, fontWeight = FontWeight.Bold)
+                Text("SKOR STABILITAS KONEKSI", fontSize = 10.sp, color = MutedSlate, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "$score / 100",
@@ -555,7 +564,7 @@ fun StabilityScoreWidget(
                     .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = status.uppercase(),
+                    text = statusIndo,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Black,
                     color = statusColor

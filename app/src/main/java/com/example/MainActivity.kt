@@ -56,11 +56,11 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class NavigationTab(val title: String, val icon: ImageVector, val tag: String) {
-    DASHBOARD("DYNAMIC SPEC", Icons.Default.Home, "tab_dashboard"),
-    SYSTEM("DEEP INFO", Icons.Default.Info, "tab_system"),
-    NETWORK("NET DIAGS", Icons.Default.Settings, "tab_network"),
-    BOOSTER("GAME ENGINE", Icons.Default.PlayArrow, "tab_booster"),
-    CACHE("CACHE CLEAN", Icons.Default.Delete, "tab_cache")
+    DASHBOARD("SPEK DINAMIS", Icons.Default.Home, "tab_dashboard"),
+    SYSTEM("INFO DETAIL", Icons.Default.Info, "tab_system"),
+    NETWORK("JARINGAN", Icons.Default.Settings, "tab_network"),
+    BOOSTER("MESIN GAME", Icons.Default.PlayArrow, "tab_booster"),
+    CACHE("BERSIH CACHE", Icons.Default.Delete, "tab_cache")
 }
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -116,7 +116,7 @@ fun MainAppLayout(viewModel: PerformanceViewModel) {
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "ENG ACTIVE",
+                            text = "MESIN AKTIF",
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             color = NeonGreen
@@ -192,7 +192,7 @@ fun MainAppLayout(viewModel: PerformanceViewModel) {
                 BoosterOverlay(
                     boosterState = boosterState,
                     logEntries = boosterLog,
-                    selectedGameName = selectedGame?.appName ?: "Selected Application"
+                    selectedGameName = selectedGame?.appName ?: "Game Terpilih"
                 )
             }
         }

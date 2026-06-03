@@ -91,7 +91,7 @@ fun DashboardScreen(
             ) {
                 // RAM Tracker
                 MemoryStatCard(
-                    title = "System RAM",
+                    title = "RAM Sistem",
                     usedText = "$rUsed MB",
                     totalText = "$rTotal MB",
                     percent = if (rTotal > 0) rUsed.toFloat() / rTotal else 0f,
@@ -100,20 +100,20 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f),
                     onActionClick = {
                         System.gc()
-                        Toast.makeText(context, "System RAM optimized: Garbages Purged", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "RAM Sistem dioptimalkan: Konsol dibersihkan", Toast.LENGTH_SHORT).show()
                     }
                 )
 
                 // Storage Level
                 MemoryStatCard(
-                    title = "ROM Partition",
+                    title = "Partisi ROM",
                     usedText = "$sUsed GB",
                     totalText = "$sTotal GB",
                     percent = if (sTotal > 0) sUsed.toFloat() / sTotal else 0f,
                     icon = Icons.Default.Info,
                     color = NeonYellow,
                     modifier = Modifier.weight(1f),
-                    actionLabel = "ANALYZE"
+                    actionLabel = "ANALISIS"
                 )
             }
         }
@@ -160,20 +160,20 @@ fun DashboardScreen(
             onDismissRequest = { showSensorsDialog = false },
             confirmButton = {
                 TextButton(onClick = { showSensorsDialog = false }) {
-                    Text("CLOSE", color = NeonCyan)
+                    Text("TUTUP", color = NeonCyan)
                 }
             },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Info, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("ON-BOARD HARDEWARE SENSORS", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+                    Text("SENSOR HARDWARE BAWAAN", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PureWhite)
                 }
             },
             text = {
                 Box(modifier = Modifier.height(280.dp)) {
                     if (sensorsList.isEmpty()) {
-                        Text("Detecting device sensors...", color = MutedSlate)
+                        Text("Mendeteksi sensor perangkat...", color = MutedSlate)
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -210,7 +210,7 @@ fun HardwareOverviewCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "SYSTEM REAL-TIME STATUS",
+                "STATUS SISTEM REAL-TIME",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = NeonCyan,
@@ -223,25 +223,25 @@ fun HardwareOverviewCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 StatusRadialMeter(
-                    label = "ACTIVE FPS",
+                    label = "FPS AKTIF",
                     value = "$fps",
-                    subLabel = "Frames/s",
+                    subLabel = "Frame/dtk",
                     progress = (fps / 144f).coerceIn(0f, 1f),
                     color = NeonGreen
                 )
 
                 StatusRadialMeter(
-                    label = "CPU LOAD",
+                    label = "BEBAN CPU",
                     value = "${cpuLoad.toInt()}%",
-                    subLabel = "Utilized",
+                    subLabel = "Terpakai",
                     progress = (cpuLoad / 100f).coerceIn(0f, 1f),
                     color = NeonCyan
                 )
 
                 StatusRadialMeter(
-                    label = "CPU TEMP",
+                    label = "SUHU CPU",
                     value = "${cpuTemp.toInt()}°C",
-                    subLabel = "Thermal",
+                    subLabel = "Suhu",
                     progress = (cpuTemp / 100f).coerceIn(0f, 1f),
                     color = if (cpuTemp > 45) NeonOrange else NeonYellow
                 )
@@ -382,7 +382,7 @@ fun PerformanceTrendGraph(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "DYNAMIC TRACKING PLOTS",
+                    "GRAFIK TELEMETRI DINAMIS",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = NeonCyan,
@@ -507,7 +507,7 @@ fun CpuFrequenciesWidget(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "CPU MULTI-CORE LOAD DISTRIBUTION",
+                "DISTRIBUSI BEBAN INTI CPU",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = NeonCyan,
@@ -555,12 +555,12 @@ fun CoreStatItem(coreNum: Int, speedMhz: Int, loadPercent: Float) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1.3f)) {
-            Text("CORE #$coreNum", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+            Text("INTI #$coreNum", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PureWhite)
             Text("${speedMhz} MHz", fontSize = 9.sp, color = NeonGreen, fontFamily = FontFamily.Monospace)
         }
         Column(modifier = Modifier.weight(2f)) {
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Text("Load", fontSize = 8.sp, color = MutedSlate)
+                Text("Beban", fontSize = 8.sp, color = MutedSlate)
                 Text("${loadPercent.toInt()}%", fontSize = 8.sp, color = PureWhite, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(4.dp))
@@ -629,14 +629,14 @@ fun PowerAndGpuWidget(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                "INTELLIGENT OVERHEAT SHIELD",
+                                "PERISAI OVERHEAT PINTAR",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = PureWhite,
                                 letterSpacing = 0.5.sp
                             )
                             Text(
-                                "Prevents kernel thermal performance throttling",
+                                "Mencegah degradasi performa akibat panas termal core",
                                 fontSize = 8.sp,
                                 color = MutedSlate
                             )
@@ -684,7 +684,7 @@ fun PowerAndGpuWidget(
                 if (activeCooler) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        "ENGAGED SYSTEM CORES CALM PROCEDURES:",
+                        "PROSEDUR OPERASI PENURUN PANAS AKTIF:",
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                         color = NeonCyan,
@@ -693,10 +693,10 @@ fun PowerAndGpuWidget(
                     Spacer(modifier = Modifier.height(6.dp))
                     
                     val activeMitigationsList = listOf(
-                        "Tracking telemetry regulated speed dynamically to drop CPU interrupt cycle overhead.",
-                        "Frequent GC sweeps triggered to vacate background heap memory allocations.",
-                        "CPU state hints optimized via high urgent process constraints.",
-                        "Low-overhead background tracking model configured cleanly."
+                        "Frekuensi pemantauan disesuaikan dinamis untuk menurunkan siklus panas interrupt hardware.",
+                        "Pembersihan memori Garbage Collector dipicu berkala mengosongkan Dalvik RAM heap.",
+                        "State intimations CPU diprioritaskan penuh khusus pengkondisian game booster aktif.",
+                        "Model penelusuran konsumsi daya ultra rendah dimuat agar suhu tetap stabil stabil."
                     )
                     activeMitigationsList.forEach { valText ->
                         Row(
@@ -716,7 +716,7 @@ fun PowerAndGpuWidget(
                 } else {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "激活 CPU 冷却保护可主动抑制由于游戏过热引起的卡顿或掉帧。",
+                        "Aktifkan Pelindung Suhu CPU secara proaktif untuk mencegah patah-patah, drop frame, atau lag berlebih saat ponsel mulai panas.",
                         fontSize = 9.sp,
                         color = MutedSlate
                     )
@@ -738,7 +738,7 @@ fun PowerAndGpuWidget(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "THERMAL & GRAPHICS HARDWARE",
+                        "TERMAL & GRAFIS INTI",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = NeonCyan,
@@ -750,7 +750,7 @@ fun PowerAndGpuWidget(
                         shape = RoundedCornerShape(4.dp),
                         modifier = Modifier.height(24.dp)
                     ) {
-                        Text("SENSORS", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
+                        Text("SENSOR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
                     }
                 }
                 Spacer(modifier = Modifier.height(14.dp))
@@ -772,23 +772,23 @@ fun PowerAndGpuWidget(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Favorite, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Power Node", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+                            Text("Daya Sistem", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PureWhite)
                         }
                         Divider(color = DarkBorder.copy(alpha = 0.2f))
                         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                            Text("Charge Status", fontSize = 9.sp, color = MutedSlate)
+                            Text("Status Cas", fontSize = 9.sp, color = MutedSlate)
                             Text(batteryStatus, fontSize = 9.sp, color = PureWhite, fontWeight = FontWeight.Medium)
                         }
                         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                            Text("Condition", fontSize = 9.sp, color = MutedSlate)
+                            Text("Kondisi", fontSize = 9.sp, color = MutedSlate)
                             Text(batteryHealth, fontSize = 9.sp, color = NeonGreen, fontWeight = FontWeight.Medium)
                         }
                         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                            Text("Voltage", fontSize = 9.sp, color = MutedSlate)
+                            Text("Tegangan", fontSize = 9.sp, color = MutedSlate)
                             Text("${batteryVoltage}mV", fontSize = 9.sp, color = PureWhite, fontFamily = FontFamily.Monospace)
                         }
                         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                            Text("Power", fontSize = 9.sp, color = MutedSlate)
+                            Text("Sisa Daya", fontSize = 9.sp, color = MutedSlate)
                             Text("$batteryLevel%", fontSize = 9.sp, color = PureWhite, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -805,7 +805,7 @@ fun PowerAndGpuWidget(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Settings, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("GPU GLES Profile", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+                            Text("Profil GLES GPU", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PureWhite)
                         }
                         Divider(color = DarkBorder.copy(alpha = 0.2f))
                         
@@ -829,7 +829,7 @@ fun PowerAndGpuWidget(
                             overflow = TextOverflow.Ellipsis
                         )
                         
-                        Text("OpenGL Version", fontSize = 8.sp, color = MutedSlate)
+                        Text("Versi OpenGL", fontSize = 8.sp, color = MutedSlate)
                         Text(
                             gpuData.version.split(" ").firstOrNull() ?: gpuData.version,
                             fontSize = 9.sp,
@@ -847,12 +847,12 @@ fun PowerAndGpuWidget(
 @Composable
 fun DeviceSpecsWidget() {
     val items = listOf(
-        Pair("Product Codename", Build.DEVICE.uppercase() ?: "Unknown"),
-        Pair("Manufacturer", Build.MANUFACTURER ?: "Generic"),
-        Pair("Hardware Board", Build.BOARD ?: "Unknown"),
-        Pair("Android Version", "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"),
-        Pair("Arch Signature", CpuInfoHelper.getCpuArchitecture()),
-        Pair("Security Level", Build.VERSION.SECURITY_PATCH ?: "Active")
+        Pair("Nama Sandi Produk", Build.DEVICE.uppercase() ?: "Tidak Diketahui"),
+        Pair("Produsen perangkat", Build.MANUFACTURER ?: "Generik"),
+        Pair("Board Hardware", Build.BOARD ?: "Tidak Diketahui"),
+        Pair("Versi OS Android", "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"),
+        Pair("Arsitektur CPU", CpuInfoHelper.getCpuArchitecture()),
+        Pair("Tingkat Patch Keamanan", Build.VERSION.SECURITY_PATCH ?: "Aktif")
     )
 
     Card(
@@ -863,7 +863,7 @@ fun DeviceSpecsWidget() {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "COMPLETE SYSTEM SPECS",
+                "SPESIFIKASI LENGKAP SISTEM",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = NeonCyan,

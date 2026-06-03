@@ -36,8 +36,8 @@ import java.io.InputStreamReader
 enum class DeepInfoCategory(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     OS_CORE("OS & KERNEL", Icons.Default.Info),
     SOC_CPU("SOC & GPU", Icons.Default.Settings),
-    HARDWARE("HARDWARE & RAM", Icons.Default.Build),
-    SENSORS("DETAILED SENSORS", Icons.Default.List)
+    HARDWARE("PERANGKAT KERAS", Icons.Default.Build),
+    SENSORS("DETIL SENSOR", Icons.Default.List)
 }
 
 @Composable
@@ -132,7 +132,7 @@ fun DeepInfoScreen(
         ) {
             item {
                 Text(
-                    text = "DEEP CORE INFORMATION DATABASE",
+                    text = "DATABASE SPESIFIKASI INTI MENDALAM",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = MutedSlate,
@@ -141,10 +141,10 @@ fun DeepInfoScreen(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = when (activeCategory) {
-                        DeepInfoCategory.OS_CORE -> "Operating System & low-level kernel properties extracted from core device runtimes."
-                        DeepInfoCategory.SOC_CPU -> "Silicon architecture, compiler instruction layouts, and real-time core frequency loads."
-                        DeepInfoCategory.HARDWARE -> "Physical manufacturing specifications, hardware serial identifiers, and active memory heaps."
-                        DeepInfoCategory.SENSORS -> "Comprehensive list of physical raw on-board hardware sensors and tracking parameters."
+                        DeepInfoCategory.OS_CORE -> "Sistem Operasi & properti kernel tingkat rendah yang didapatkan dari runtime perangkat."
+                        DeepInfoCategory.SOC_CPU -> "Rincian silikon arsitektur prosesor, set instruksi ABI compile, dan beban core CPU real-time."
+                        DeepInfoCategory.HARDWARE -> "Informasi fisik pabrikan HP, pengidentifikasi perangkat keras, serta penggunaan memori RAM."
+                        DeepInfoCategory.SENSORS -> "Daftar lengkap sensor fisik bawaan perangkat lengkap beserta data rentang dan daya sensor."
                     },
                     fontSize = 10.sp,
                     color = MutedSlate
@@ -157,18 +157,18 @@ fun DeepInfoScreen(
                     val kernelDetails = getKernelVersion()
                     val selinuxMode = getSELinuxState()
                     val properties = listOf(
-                        SpecRow("Android Release", Build.VERSION.RELEASE),
-                        SpecRow("API SDK Target", Build.VERSION.SDK_INT.toString()),
-                        SpecRow("Security Patch Level", if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Build.VERSION.SECURITY_PATCH else "N/A"),
-                        SpecRow("Build ID Token", Build.ID),
-                        SpecRow("Kernel Version Info", kernelDetails, isPreformatted = true),
-                        SpecRow("SELinux Core Status", selinuxMode),
-                        SpecRow("Uptime Tracker", uptimeString),
-                        SpecRow("Hardware Fingerprint", Build.FINGERPRINT, isPreformatted = true),
-                        SpecRow("Bootloader Kernel", Build.BOOTLOADER),
-                        SpecRow("Baseband Codename", Build.getRadioVersion() ?: "Unknown"),
-                        SpecRow("Java Runtime VM", System.getProperty("java.vm.version") ?: "Android Runtime (ART)"),
-                        SpecRow("Development Host", Build.HOST)
+                        SpecRow("Rilis Versi Android", Build.VERSION.RELEASE),
+                        SpecRow("Target SDK API", Build.VERSION.SDK_INT.toString()),
+                        SpecRow("Tingkat Patch Keamanan", if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Build.VERSION.SECURITY_PATCH else "N/A"),
+                        SpecRow("Token ID Build", Build.ID),
+                        SpecRow("Informasi Versi Kernel", kernelDetails, isPreformatted = true),
+                        SpecRow("Status SELinux Core", selinuxMode),
+                        SpecRow("Lama Hidup HP (Uptime)", uptimeString),
+                        SpecRow("Sidik Jari Perangkat (Fingerprint)", Build.FINGERPRINT, isPreformatted = true),
+                        SpecRow("Sistem Bootloader", Build.BOOTLOADER),
+                        SpecRow("Kode Baseband", Build.getRadioVersion() ?: "Tidak Diketahui"),
+                        SpecRow("Java VM Runtime", System.getProperty("java.vm.version") ?: "Android Runtime (ART)"),
+                        SpecRow("Host Pengembang", Build.HOST)
                     )
                     items(properties) { spec -> SpecDataCard(spec) }
                 }
@@ -176,20 +176,20 @@ fun DeepInfoScreen(
                 DeepInfoCategory.SOC_CPU -> {
                     val abisList = Build.SUPPORTED_ABIS.joinToString(", ")
                     val properties = listOf(
-                        SpecRow("Processor Hardware", Build.HARDWARE),
-                        SpecRow("Board Product ID", Build.BOARD),
-                        SpecRow("Instruction Support", abisList, isPreformatted = true),
-                        SpecRow("Core Count Identified", cpuData.activeCores.toString()),
-                        SpecRow("Architecture Code", CpuInfoHelper.getCpuArchitecture()),
-                        SpecRow("GPU Chipset Vendor", gpuInfo.vendor),
-                        SpecRow("GPU Graphic Renderer", gpuInfo.renderer),
-                        SpecRow("OpenGL Support Level", gpuInfo.version, isPreformatted = true)
+                        SpecRow("Hardware Chipset", Build.HARDWARE),
+                        SpecRow("ID Board Perangkat", Build.BOARD),
+                        SpecRow("Set Instruksi (ABIs)", abisList, isPreformatted = true),
+                        SpecRow("Jumlah Core Terdeteksi", cpuData.activeCores.toString()),
+                        SpecRow("Arsitektur CPU", CpuInfoHelper.getCpuArchitecture()),
+                        SpecRow("Vendor GPU", gpuInfo.vendor),
+                        SpecRow("Renderer Grafis GPU", gpuInfo.renderer),
+                        SpecRow("Tingkat OpenGL GLES", gpuInfo.version, isPreformatted = true)
                     )
                     items(properties) { spec -> SpecDataCard(spec) }
 
                     item {
                         Text(
-                            text = "CPU FREQUENCY CLUSTER BREAKDOWN",
+                            text = "RINCIAN KLUSTER FREKUENSI INTI",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = NeonYellow,
@@ -207,17 +207,17 @@ fun DeepInfoScreen(
                 DeepInfoCategory.HARDWARE -> {
                     val maxHeapMb = (Runtime.getRuntime().maxMemory() / (1024 * 1024)).toInt()
                     val properties = listOf(
-                        SpecRow("Device Brand", Build.BRAND.uppercase()),
-                        SpecRow("Manufacturer OEM", Build.MANUFACTURER),
-                        SpecRow("Display Model Name", Build.MODEL),
-                        SpecRow("Product Identifier", Build.PRODUCT),
-                        SpecRow("On-Board Hardware Code", Build.DEVICE),
-                        SpecRow("Total Physical RAM", "$rTotal MB"),
-                        SpecRow("Available Free RAM", "$rFree MB"),
-                        SpecRow("Used Operating RAM", "$rUsed MB"),
-                        SpecRow("VM Max Memory Heap Limit", "$maxHeapMb MB"),
-                        SpecRow("Total Built-in Storage", "$sTotal GB"),
-                        SpecRow("Allocated User Storage", "$sUsed GB")
+                        SpecRow("Merek Perangkat", Build.BRAND.uppercase()),
+                        SpecRow("Produsen Perangkat (OEM)", Build.MANUFACTURER),
+                        SpecRow("Nama Model Terdaftar", Build.MODEL),
+                        SpecRow("Pengenal Produk", Build.PRODUCT),
+                        SpecRow("Kode Hardware Internal", Build.DEVICE),
+                        SpecRow("RAM Fisik Keseluruhan", "$rTotal MB"),
+                        SpecRow("RAM Bebas Tersedia", "$rFree MB"),
+                        SpecRow("RAM Terpakai Sistem", "$rUsed MB"),
+                        SpecRow("Batas Maks Heap Memori VM", "$maxHeapMb MB"),
+                        SpecRow("Total Penyimpanan Internal", "$sTotal GB"),
+                        SpecRow("Penyimpanan Terpakai", "$sUsed GB")
                     )
                     items(properties) { spec -> SpecDataCard(spec) }
                 }
@@ -229,7 +229,7 @@ fun DeepInfoScreen(
                     if (fullList.isEmpty()) {
                         item {
                             Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                                Text("No hardware sensor profiles discovered on this emulator target.", color = MutedSlate, fontSize = 11.sp)
+                                  Text("Tidak ada profil sensor perangkat keras ditemukan.", color = MutedSlate, fontSize = 11.sp)
                             }
                         }
                     } else {
@@ -299,7 +299,7 @@ fun CoreFreqBarItem(coreIndex: Int, freqMhz: Int, loadPercent: Float) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Core #$coreIndex Load",
+                    text = "Beban Inti #$coreIndex",
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     color = PureWhite
@@ -382,18 +382,18 @@ fun SensorSpecCard(sensor: Sensor) {
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    SensorSmallProp(label = "MAX RANGE", value = String.format("%.2f", sensor.maximumRange))
-                    SensorSmallProp(label = "RESOLUTION", value = String.format("%.4f", sensor.resolution))
-                    SensorSmallProp(label = "POWER BOUNDS", value = String.format("%.3f mA", sensor.power))
+                    SensorSmallProp(label = "RENTANG MAKS", value = String.format("%.2f", sensor.maximumRange))
+                    SensorSmallProp(label = "RESOLUSI", value = String.format("%.4f", sensor.resolution))
+                    SensorSmallProp(label = "BATAS DAYA", value = String.format("%.3f mA", sensor.power))
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    SensorSmallProp(label = "MIN DELAY", value = "${sensor.minDelay} μs")
-                    SensorSmallProp(label = "REPORT MODE", value = when {
+                    SensorSmallProp(label = "DELAY MINIMAL", value = "${sensor.minDelay} μs")
+                    SensorSmallProp(label = "MODE LAPOR", value = when {
                         Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP -> getReportingModeName(sensor.reportingMode)
-                        else -> "Standard"
+                        else -> "Standar"
                     })
-                    SensorSmallProp(label = "WAKEUP TYPE", value = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) sensor.isWakeUpSensor.toString().uppercase() else "N/A")
+                    SensorSmallProp(label = "TIPE BANGUN", value = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) sensor.isWakeUpSensor.toString().uppercase() else "N/A")
                 }
             }
         }
