@@ -743,7 +743,35 @@ fun FloatingWindowComponent(
 @Composable
 fun FloatingBrowser(context: Context) {
     var urlText by remember { mutableStateOf("https://www.google.com") }
-    var searchTriggeredUrl by remember { mutableStateOf("https://www.google.com") }
+    var webViewInstance by remember { mutableStateOf<WebView?>(null) }
+
+    fun getSanitizedUrl(input: String): String {
+        val trimmed = input.trim()
+        if (trimmed.isEmpty()) return "https://www.google.com"
+        
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            return trimmed
+        }
+        
+        val hasNoSpaces = !trimmed.contains(" ")
+        val hasDot = trimmed.contains(".")
+        val hasTopLevelDomain = trimmed.substringAfterLast(".").all { it.isLetter() } && trimmed.substringAfterLast(".").length >= 2
+        
+        if (hasNoSpaces && hasDot && hasTopLevelDomain) {
+            return "https://$trimmed"
+        }
+        
+        return try {
+            "https://www.google.com/search?q=" + java.net.URLEncoder.encode(trimmed, "UTF-8")
+        } catch (e: Exception) {
+            "https://www.google.com/search?q=$trimmed"
+        }
+    }
+
+    val triggerSearch = {
+        val targetUrl = getSanitizedUrl(urlText)
+        webViewInstance?.loadUrl(targetUrl)
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -759,11 +787,7 @@ fun FloatingBrowser(context: Context) {
                 textStyle = LocalTextStyle.current.copy(color = PureWhite, fontSize = 9.sp, fontFamily = FontFamily.Monospace),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = {
-                    searchTriggeredUrl = if (!urlText.startsWith("http://") && !urlText.startsWith("https://")) {
-                        "https://$urlText"
-                    } else {
-                        urlText
-                    }
+                    triggerSearch()
                 }),
                 modifier = Modifier
                     .weight(1f)
@@ -774,13 +798,7 @@ fun FloatingBrowser(context: Context) {
             )
             Spacer(modifier = Modifier.width(4.dp))
             IconButton(
-                onClick = {
-                    searchTriggeredUrl = if (!urlText.startsWith("http://") && !urlText.startsWith("https://")) {
-                        "https://$urlText"
-                    } else {
-                        urlText
-                    }
-                },
+                onClick = { triggerSearch() },
                 modifier = Modifier
                     .size(26.dp)
                     .background(NeonCyan, RoundedCornerShape(4.dp))
@@ -802,15 +820,46 @@ fun FloatingBrowser(context: Context) {
                     settings.setSupportZoom(true)
                     settings.builtInZoomControls = true
                     settings.displayZoomControls = false
-                    webViewClient = WebViewClient()
+                    settings.databaseEnabled = true
+                    settings.allowFileAccess = true
+                    settings.allowContentAccess = true
+                    
+                    try {
+                        settings.allowFileAccessFromFileURLs = true
+                        settings.allowUniversalAccessFromFileURLs = true
+                    } catch (e: Exception) {}
+                    
+                    settings.javaScriptCanOpenWindowsAutomatically = true
+                    
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                    }
+                    
+                    settings.userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+                    
+                    webViewClient = object : WebViewClient() {
+                        override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                            if (url != null) {
+                                view?.loadUrl(url)
+                            }
+                            return true
+                        }
+                        
+                        override fun onReceivedSslError(
+                            view: WebView?,
+                            handler: android.webkit.SslErrorHandler?,
+                            error: android.net.http.SslError?
+                        ) {
+                            handler?.proceed()
+                        }
+                    }
                     webChromeClient = WebChromeClient()
-                    loadUrl(searchTriggeredUrl)
+                    webViewInstance = this
+                    loadUrl("https://www.google.com")
                 }
             },
-            update = { webView ->
-                if (webView.url != searchTriggeredUrl && searchTriggeredUrl.isNotEmpty()) {
-                    webView.loadUrl(searchTriggeredUrl)
-                }
+            update = {
+                // Done on triggerSearch explicitly
             }
         )
     }
@@ -1031,164 +1080,272 @@ fun CustomAppMockSandbox(
     window: PerformanceViewModel.FloatingWindow,
     context: Context
 ) {
+    var selectedTab by remember { mutableStateOf("control") }
     var isAcelActive by remember { mutableStateOf(true) }
     var mockFpsLock by remember { mutableStateOf("120 FPS") }
     var coreNumber by remember { mutableStateOf((0..7).filter { it % 2 == 0 }.joinToString { "#$it" }) }
     val displayPackage = window.packageName ?: "com.app.isolated"
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(NeonGreen.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(16.dp))
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(window.title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PureWhite)
-                Text(displayPackage, fontSize = 8.sp, color = MutedSlate, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-
-        Divider(color = DarkBorder.copy(alpha = 0.3F))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    
+    val initialUrl = remember(window.title) {
+        if (window.title.contains("WhatsApp", ignoreCase = true)) "https://web.whatsapp.com"
+        else if (window.title.contains("YouTube", ignoreCase = true)) "https://m.youtube.com"
+        else if (window.title.contains("TikTok", ignoreCase = true)) "https://www.tiktok.com"
+        else if (window.title.contains("Discord", ignoreCase = true)) "https://discord.com/login"
+        else "https://www.google.com/search?q=" + java.net.URLEncoder.encode(window.title + " walkthrough guide", "UTF-8")
+    }
+    
+    var companionUrlText by remember { mutableStateOf(initialUrl) }
+    var webViewInstance by remember { mutableStateOf<WebView?>(null) }
+    
+    Column(modifier = Modifier.fillMaxSize()) {
+        TabRow(
+            selectedTabIndex = if (selectedTab == "control") 0 else 1,
+            containerColor = SurfaceSlate,
+            contentColor = NeonCyan,
+            modifier = Modifier.height(34.dp)
         ) {
-            Text(
-                text = "SANDBOX AKSELEROR (ANTI LAG)",
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Bold,
-                color = NeonCyan,
-                letterSpacing = 1.sp
+            Tab(
+                selected = selectedTab == "control",
+                onClick = { selectedTab = "control" },
+                text = { Text("DASBOR UTAMA", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (selectedTab == "control") NeonCyan else MutedSlate) }
             )
-            Switch(
-                checked = isAcelActive,
-                onCheckedChange = { isAcelActive = it },
-                modifier = Modifier.graphicsLayer(scaleX = 0.7f, scaleY = 0.7f),
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = NeonCyan,
-                    checkedTrackColor = NeonCyan.copy(alpha = 0.3f)
-                )
+            Tab(
+                selected = selectedTab == "browser",
+                onClick = { selectedTab = "browser" },
+                text = { Text("INTEGRASI WEB CLIENT", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (selectedTab == "browser") NeonCyan else MutedSlate) }
             )
         }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Box(
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        if (selectedTab == "control") {
+            Column(
                 modifier = Modifier
                     .weight(1f)
-                    .background(DarkBackground, RoundedCornerShape(4.dp))
-                    .padding(6.dp)
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Column {
-                    Text("ISOLATION CORES", fontSize = 7.sp, color = MutedSlate)
-                    Text(if (isAcelActive) coreNumber else "All Threads", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (isAcelActive) NeonGreen else MutedSlate)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(NeonGreen.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(14.dp))
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(window.title, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PureWhite)
+                        Text(displayPackage, fontSize = 7.sp, color = MutedSlate, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .background(DarkBackground, RoundedCornerShape(4.dp))
-                    .padding(6.dp)
-            ) {
-                Column {
-                    Text("DYNAMIC FPS LOCK", fontSize = 7.sp, color = MutedSlate)
-                    Text(if (isAcelActive) mockFpsLock else "UNLOCKED", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (isAcelActive) NeonYellow else MutedSlate)
+                
+                Divider(color = DarkBorder.copy(alpha = 0.3F))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "AKSELEROR SANDBOX (ANTILAG)",
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = NeonCyan
+                    )
+                    Switch(
+                        checked = isAcelActive,
+                        onCheckedChange = { isAcelActive = it },
+                        modifier = Modifier.graphicsLayer(scaleX = 0.7f, scaleY = 0.7f),
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = NeonCyan,
+                            checkedTrackColor = NeonCyan.copy(alpha = 0.3f)
+                        )
+                    )
                 }
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(DarkBackground, RoundedCornerShape(6.dp))
-                .padding(6.dp)
-        ) {
-            Column {
-                Text("OPTIMISASI AKTIF", fontSize = 7.sp, color = MutedSlate)
-                Text("- Thread Priority: Realtime Scheduler Core", fontSize = 8.sp, color = if (isAcelActive) NeonCyan else MutedSlate)
-                Text("- Dynamic Memory Purge: Enabled", fontSize = 8.sp, color = if (isAcelActive) NeonCyan else MutedSlate)
-                Text("- TCP Socket Fast Handshake: Active", fontSize = 8.sp, color = if (isAcelActive) NeonCyan else MutedSlate)
-            }
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Launcher options
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Button(
-                onClick = {
-                    try {
-                        val pm = context.packageManager
-                        val intent = pm.getLaunchIntentForPackage(displayPackage)
-                        if (intent != null) {
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                                intent.addFlags(Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT)
-                            }
-                            val options = android.app.ActivityOptions.makeBasic()
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(DarkBackground, RoundedCornerShape(4.dp))
+                            .padding(4.dp)
+                    ) {
+                        Column {
+                            Text("ISOLATION CORES", fontSize = 6.sp, color = MutedSlate)
+                            Text(if (isAcelActive) coreNumber else "All Threads", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (isAcelActive) NeonGreen else MutedSlate)
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(DarkBackground, RoundedCornerShape(4.dp))
+                            .padding(4.dp)
+                    ) {
+                        Column {
+                            Text("DYNAMIC FPS LOCK", fontSize = 6.sp, color = MutedSlate)
+                            Text(if (isAcelActive) mockFpsLock else "UNLOCKED", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (isAcelActive) NeonYellow else MutedSlate)
+                        }
+                    }
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(DarkBackground, RoundedCornerShape(4.dp))
+                        .padding(5.dp)
+                ) {
+                    Column {
+                        Text("OPTIMISASI AKTIF LUAR", fontSize = 6.sp, color = MutedSlate)
+                        Text("- CPU Priority: Realtime Scheduler Core", fontSize = 7.sp, color = if (isAcelActive) NeonCyan else MutedSlate)
+                        Text("- Auto RAM Garbage Sweep: Active", fontSize = 7.sp, color = if (isAcelActive) NeonCyan else MutedSlate)
+                        Text("- TCP Socket No-Delay: Active", fontSize = 7.sp, color = if (isAcelActive) NeonCyan else MutedSlate)
+                    }
+                }
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Button(
+                        onClick = {
                             try {
-                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                                    val rect = android.graphics.Rect(80, 120, 1000, 1200)
-                                    val method = options.javaClass.getMethod("setLaunchBounds", android.graphics.Rect::class.java)
-                                    method.invoke(options, rect)
+                                val pm = context.packageManager
+                                val intent = pm.getLaunchIntentForPackage(displayPackage)
+                                if (intent != null) {
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    context.startActivity(intent)
+                                    Toast.makeText(context, "Meluncurkan ${window.title} secara full-screen asli", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "Membuka konsol simulasi ${window.title}", Toast.LENGTH_SHORT).show()
                                 }
-                            } catch (e: Exception) {}
-                            context.startActivity(intent, options.toBundle())
-                            Toast.makeText(context, "Meluncurkan ${window.title} (Jendela Mengambang)", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, "Membuka konsol simulasi ${window.title}", Toast.LENGTH_SHORT).show()
-                        }
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Gagal membuka mode mengambang asli: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Gagal meluncurkan: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(26.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonGreen),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, tint = SurfaceSlate, modifier = Modifier.size(10.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("BUKA ASLI (NATIVE FULLSCREEN)", fontSize = 8.sp, color = SurfaceSlate, fontWeight = FontWeight.Bold)
                     }
-                },
-                modifier = Modifier.fillMaxWidth().height(28.dp),
-                contentPadding = PaddingValues(0.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
-                shape = RoundedCornerShape(4.dp)
-            ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = SurfaceSlate, modifier = Modifier.size(10.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("BUKA ASLI (OVERLAY MENGAMBANG)", fontSize = 8.sp, color = SurfaceSlate, fontWeight = FontWeight.Bold)
+                }
             }
-
-            Button(
-                onClick = {
-                    try {
-                        val intent = context.packageManager.getLaunchIntentForPackage(displayPackage)
-                        if (intent != null) {
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(intent)
-                        } else {
-                            Toast.makeText(context, "Membuka konsol simulasi ${window.title}", Toast.LENGTH_SHORT).show()
-                        }
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Gagal meluncurkan: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        } else {
+            Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(SurfaceSlate)
+                        .padding(2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BasicTextField(
+                        value = companionUrlText,
+                        onValueChange = { companionUrlText = it },
+                        textStyle = LocalTextStyle.current.copy(color = PureWhite, fontSize = 8.sp, fontFamily = FontFamily.Monospace),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = {
+                            val raw = companionUrlText.trim()
+                            val target = if (raw.startsWith("http://") || raw.startsWith("https://")) {
+                                raw
+                            } else if (raw.contains(".") && !raw.contains(" ")) {
+                                "https://$raw"
+                            } else {
+                                "https://www.google.com/search?q=" + java.net.URLEncoder.encode(raw, "UTF-8")
+                            }
+                            webViewInstance?.loadUrl(target)
+                        }),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(DarkBackground)
+                            .border(1.dp, DarkBorder, RoundedCornerShape(3.dp))
+                            .padding(4.dp)
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    IconButton(
+                        onClick = {
+                            val raw = companionUrlText.trim()
+                            val target = if (raw.startsWith("http://") || raw.startsWith("https://")) {
+                                raw
+                            } else if (raw.contains(".") && !raw.contains(" ")) {
+                                "https://$raw"
+                            } else {
+                                "https://www.google.com/search?q=" + java.net.URLEncoder.encode(raw, "UTF-8")
+                            }
+                            webViewInstance?.loadUrl(target)
+                        },
+                        modifier = Modifier
+                            .size(22.dp)
+                            .background(NeonCyan, RoundedCornerShape(3.dp))
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = "Search", tint = SurfaceSlate, modifier = Modifier.size(11.dp))
                     }
-                },
-                modifier = Modifier.fillMaxWidth().height(28.dp),
-                contentPadding = PaddingValues(0.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = NeonGreen),
-                shape = RoundedCornerShape(4.dp)
-            ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = SurfaceSlate, modifier = Modifier.size(10.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("BUKA SEKARANG (NATIVE FULLSCREEN)", fontSize = 8.sp, color = SurfaceSlate, fontWeight = FontWeight.Bold)
+                }
+                
+                AndroidView(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    factory = { ctx ->
+                        WebView(ctx).apply {
+                            settings.javaScriptEnabled = true
+                            settings.domStorageEnabled = true
+                            settings.loadWithOverviewMode = true
+                            settings.useWideViewPort = true
+                            settings.setSupportZoom(true)
+                            settings.builtInZoomControls = true
+                            settings.displayZoomControls = false
+                            settings.databaseEnabled = true
+                            settings.allowFileAccess = true
+                            settings.allowContentAccess = true
+                            
+                            try {
+                                settings.allowFileAccessFromFileURLs = true
+                                settings.allowUniversalAccessFromFileURLs = true
+                            } catch (e: Exception) {}
+                            
+                            settings.javaScriptCanOpenWindowsAutomatically = true
+                            
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                                settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                            }
+                            
+                            settings.userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+                            
+                            webViewClient = object : WebViewClient() {
+                                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                                    if (url != null) {
+                                        view?.loadUrl(url)
+                                    }
+                                    return true
+                                }
+                                override fun onReceivedSslError(
+                                    view: WebView?,
+                                    handler: android.webkit.SslErrorHandler?,
+                                    error: android.net.http.SslError?
+                                ) {
+                                    handler?.proceed()
+                                }
+                            }
+                            webChromeClient = WebChromeClient()
+                            webViewInstance = this
+                            loadUrl(companionUrlText)
+                        }
+                    },
+                    update = {
+                        // Managed dynamically
+                    }
+                )
             }
         }
     }
