@@ -28,10 +28,15 @@ import com.example.ui.theme.*
 import com.example.ui.viewmodel.PerformanceViewModel
 import com.example.ui.viewmodel.PerformanceViewModelFactory
 
+import com.example.service.BoosterForegroundService
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Start foreground service to keep application immune to background killing
+        BoosterForegroundService.startService(this)
 
         setContent {
             MyApplicationTheme {

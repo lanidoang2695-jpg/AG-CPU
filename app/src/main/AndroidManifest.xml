@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" tools:ignore="ForegroundServicePermission" />
 
     <application
         android:allowBackup="true"
@@ -28,6 +30,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name="com.example.service.BoosterForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            tools:ignore="ForegroundServicePermission">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Gaming optimizer active engine and persistent anti-lag network thread" />
+        </service>
     </application>
 
 </manifest>

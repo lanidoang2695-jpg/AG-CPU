@@ -74,6 +74,25 @@ fun SidebarAndFloatingWindows(
 
         // Sidebar Trigger & drawer if enabled in settings
         if (sidebarEnabled) {
+            // Full-Height Screen Left Edge Swipe Detection Zone (for effortless swipe-to-open gesture)
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(32.dp)
+                    .align(Alignment.CenterStart)
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                if (dragAmount.x > 8) {
+                                    isSidebarOpen = true
+                                }
+                            }
+                        )
+                    }
+                    .background(Color.Transparent)
+            )
+
             // Drag handle at top-left edge
             Box(
                 modifier = Modifier
@@ -780,13 +799,18 @@ fun FloatingBrowser(context: Context) {
                     settings.domStorageEnabled = true
                     settings.loadWithOverviewMode = true
                     settings.useWideViewPort = true
+                    settings.setSupportZoom(true)
+                    settings.builtInZoomControls = true
+                    settings.displayZoomControls = false
                     webViewClient = WebViewClient()
                     webChromeClient = WebChromeClient()
                     loadUrl(searchTriggeredUrl)
                 }
             },
             update = { webView ->
-                webView.loadUrl(searchTriggeredUrl)
+                if (webView.url != searchTriggeredUrl && searchTriggeredUrl.isNotEmpty()) {
+                    webView.loadUrl(searchTriggeredUrl)
+                }
             }
         )
     }
@@ -1007,16 +1031,21 @@ fun CustomAppMockSandbox(
     window: PerformanceViewModel.FloatingWindow,
     context: Context
 ) {
+    var isAcelActive by remember { mutableStateOf(true) }
+    var mockFpsLock by remember { mutableStateOf("120 FPS") }
+    var coreNumber by remember { mutableStateOf((0..7).filter { it % 2 == 0 }.joinToString { "#$it" }) }
+    val displayPackage = window.packageName ?: "com.app.isolated"
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(26.dp)
+                    .size(28.dp)
                     .clip(CircleShape)
                     .background(NeonGreen.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
@@ -1024,21 +1053,36 @@ fun CustomAppMockSandbox(
                 Icon(Icons.Default.PlayArrow, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(16.dp))
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(window.title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PureWhite)
-                Text(window.packageName ?: "com.app.isolated", fontSize = 8.sp, color = MutedSlate, maxLines = 1)
+                Text(displayPackage, fontSize = 8.sp, color = MutedSlate, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
 
         Divider(color = DarkBorder.copy(alpha = 0.3F))
 
-        Text(
-            text = "SANDBOX AKSELEROR (ANTI LAG): ON",
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Bold,
-            color = NeonCyan,
-            letterSpacing = 1.sp
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "SANDBOX AKSELEROR (ANTI LAG)",
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                color = NeonCyan,
+                letterSpacing = 1.sp
+            )
+            Switch(
+                checked = isAcelActive,
+                onCheckedChange = { isAcelActive = it },
+                modifier = Modifier.graphicsLayer(scaleX = 0.7f, scaleY = 0.7f),
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = NeonCyan,
+                    checkedTrackColor = NeonCyan.copy(alpha = 0.3f)
+                )
+            )
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1051,8 +1095,8 @@ fun CustomAppMockSandbox(
                     .padding(6.dp)
             ) {
                 Column {
-                    Text("ISOLATION CORE", fontSize = 7.sp, color = MutedSlate)
-                    Text("Core #3, #4", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
+                    Text("ISOLATION CORES", fontSize = 7.sp, color = MutedSlate)
+                    Text(if (isAcelActive) coreNumber else "All Threads", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (isAcelActive) NeonGreen else MutedSlate)
                 }
             }
             Box(
@@ -1062,34 +1106,90 @@ fun CustomAppMockSandbox(
                     .padding(6.dp)
             ) {
                 Column {
-                    Text("GPU MEM ALLOC", fontSize = 7.sp, color = MutedSlate)
-                    Text("Locked Max", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonYellow)
+                    Text("DYNAMIC FPS LOCK", fontSize = 7.sp, color = MutedSlate)
+                    Text(if (isAcelActive) mockFpsLock else "UNLOCKED", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (isAcelActive) NeonYellow else MutedSlate)
                 }
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(DarkBackground, RoundedCornerShape(6.dp))
+                .padding(6.dp)
+        ) {
+            Column {
+                Text("OPTIMISASI AKTIF", fontSize = 7.sp, color = MutedSlate)
+                Text("- Thread Priority: Realtime Scheduler Core", fontSize = 8.sp, color = if (isAcelActive) NeonCyan else MutedSlate)
+                Text("- Dynamic Memory Purge: Enabled", fontSize = 8.sp, color = if (isAcelActive) NeonCyan else MutedSlate)
+                Text("- TCP Socket Fast Handshake: Active", fontSize = 8.sp, color = if (isAcelActive) NeonCyan else MutedSlate)
             }
         }
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Button(
-            onClick = {
-                try {
-                    val intent = context.packageManager.getLaunchIntentForPackage(window.packageName ?: "")
-                    if (intent != null) {
-                        context.startActivity(intent)
-                    } else {
-                        Toast.makeText(context, "Aplikasi gagal diluncurkan secara langsung", Toast.LENGTH_SHORT).show()
+        // Launcher options
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Button(
+                onClick = {
+                    try {
+                        val pm = context.packageManager
+                        val intent = pm.getLaunchIntentForPackage(displayPackage)
+                        if (intent != null) {
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                                intent.addFlags(Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT)
+                            }
+                            val options = android.app.ActivityOptions.makeBasic()
+                            try {
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                                    val rect = android.graphics.Rect(80, 120, 1000, 1200)
+                                    val method = options.javaClass.getMethod("setLaunchBounds", android.graphics.Rect::class.java)
+                                    method.invoke(options, rect)
+                                }
+                            } catch (e: Exception) {}
+                            context.startActivity(intent, options.toBundle())
+                            Toast.makeText(context, "Meluncurkan ${window.title} (Jendela Mengambang)", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Membuka konsol simulasi ${window.title}", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Gagal membuka mode mengambang asli: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                     }
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Terjadi gangguan meluncurkan manifest", Toast.LENGTH_SHORT).show()
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = NeonGreen),
-            shape = RoundedCornerShape(6.dp)
-        ) {
-            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = SurfaceSlate, modifier = Modifier.size(14.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("BUKA SEKARANG (NATIVE)", fontSize = 11.sp, color = SurfaceSlate, fontWeight = FontWeight.Bold)
+                },
+                modifier = Modifier.fillMaxWidth().height(28.dp),
+                contentPadding = PaddingValues(0.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan),
+                shape = RoundedCornerShape(4.dp)
+            ) {
+                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = SurfaceSlate, modifier = Modifier.size(10.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("BUKA ASLI (OVERLAY MENGAMBANG)", fontSize = 8.sp, color = SurfaceSlate, fontWeight = FontWeight.Bold)
+            }
+
+            Button(
+                onClick = {
+                    try {
+                        val intent = context.packageManager.getLaunchIntentForPackage(displayPackage)
+                        if (intent != null) {
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                        } else {
+                            Toast.makeText(context, "Membuka konsol simulasi ${window.title}", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Gagal meluncurkan: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(28.dp),
+                contentPadding = PaddingValues(0.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = NeonGreen),
+                shape = RoundedCornerShape(4.dp)
+            ) {
+                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = SurfaceSlate, modifier = Modifier.size(10.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("BUKA SEKARANG (NATIVE FULLSCREEN)", fontSize = 8.sp, color = SurfaceSlate, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
