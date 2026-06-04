@@ -153,6 +153,11 @@ fun DashboardScreen(
         item {
             DeviceSpecsWidget()
         }
+
+        // Sidebar Settings Toggle Card
+        item {
+            SidebarSettingsWidget(viewModel = viewModel)
+        }
     }
 
     if (showSensorsDialog) {
@@ -244,6 +249,95 @@ fun HardwareOverviewCard(
                     subLabel = "Suhu",
                     progress = (cpuTemp / 100f).coerceIn(0f, 1f),
                     color = if (cpuTemp > 45) NeonOrange else NeonYellow
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SidebarSettingsWidget(viewModel: PerformanceViewModel) {
+    val sidebarEnabled by viewModel.sidebarEnabled.collectAsState()
+    val currentMode by viewModel.globalGameMode.collectAsState()
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, NeonCyan.copy(alpha = 0.25f), RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = SurfaceSlate)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = null,
+                    tint = NeonCyan,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "KONFIGURASI BILAH SAMPING (CONSOLE)",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PureWhite,
+                    letterSpacing = 1.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(DarkBackground)
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Aktifkan Bilah Samping Layar",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PureWhite
+                    )
+                    Text(
+                        text = "Geser dari kiri atas untuk membuka menu kontrol",
+                        fontSize = 10.sp,
+                        color = MutedSlate
+                    )
+                }
+                Switch(
+                    checked = sidebarEnabled,
+                    onCheckedChange = { viewModel.setSidebarEnabled(it) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = NeonCyan,
+                        checkedTrackColor = NeonCyan.copy(alpha = 0.3f),
+                        uncheckedThumbColor = MutedSlate,
+                        uncheckedTrackColor = DarkBorder.copy(alpha = 0.3f)
+                    )
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Status: " + if (sidebarEnabled) "SIAP (Geser Kiri Atas)" else "NONAKTIF",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (sidebarEnabled) NeonGreen else CyberPink
+                )
+                Text(
+                    text = "Mode Game: $currentMode",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = NeonYellow
                 )
             }
         }

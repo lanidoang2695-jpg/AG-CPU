@@ -23,12 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.AppDatabase
 import com.example.data.GameRepository
-import com.example.ui.screens.BoosterOverlay
-import com.example.ui.screens.DashboardScreen
-import com.example.ui.screens.DeepInfoScreen
-import com.example.ui.screens.GamingBoosterScreen
-import com.example.ui.screens.NetworkScreen
-import com.example.ui.screens.CacheCleanerScreen
+import com.example.ui.screens.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.PerformanceViewModel
 import com.example.ui.viewmodel.PerformanceViewModelFactory
@@ -70,6 +65,7 @@ fun MainAppLayout(viewModel: PerformanceViewModel) {
     val boosterState by viewModel.boosterState.collectAsState()
     val boosterLog by viewModel.boosterLog.collectAsState()
     val selectedGame by viewModel.selectedGameForBoost.collectAsState()
+    val allProfiles by viewModel.allProfilesList.collectAsState(initial = emptyList())
 
     Scaffold(
         modifier = Modifier
@@ -195,6 +191,12 @@ fun MainAppLayout(viewModel: PerformanceViewModel) {
                     selectedGameName = selectedGame?.appName ?: "Game Terpilih"
                 )
             }
+
+            // Collapsible Sidebar & Resizable Floating Windows Overlay
+            SidebarAndFloatingWindows(
+                viewModel = viewModel,
+                allProfiles = allProfiles
+            )
         }
     }
 }

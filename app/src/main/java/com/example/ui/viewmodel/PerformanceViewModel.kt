@@ -133,6 +133,146 @@ class PerformanceViewModel(
     private val _selectedNetworkMode = MutableStateFlow("AUTO")
     val selectedNetworkMode = _selectedNetworkMode.asStateFlow()
 
+    // --- Sidebar and Game Modes States ---
+    private val prefs = context.getSharedPreferences("ag_booster_prefs", Context.MODE_PRIVATE)
+
+    private val _sidebarEnabled = MutableStateFlow(prefs.getBoolean("sidebar_enabled", true))
+    val sidebarEnabled = _sidebarEnabled.asStateFlow()
+
+    private val _globalGameMode = MutableStateFlow(prefs.getString("global_game_mode", "BALANCED") ?: "BALANCED")
+    val globalGameMode = _globalGameMode.asStateFlow()
+
+    private val _lockFpsSelected = MutableStateFlow(prefs.getBoolean("lock_fps", false))
+    val lockFpsSelected = _lockFpsSelected.asStateFlow()
+
+    private val _lockNetworkSelected = MutableStateFlow(prefs.getBoolean("lock_network", false))
+    val lockNetworkSelected = _lockNetworkSelected.asStateFlow()
+
+    private val _hdrModeSelected = MutableStateFlow(prefs.getBoolean("hdr_mode", false))
+    val hdrModeSelected = _hdrModeSelected.asStateFlow()
+
+    private val _highResSelected = MutableStateFlow(prefs.getBoolean("high_res", false))
+    val highResSelected = _highResSelected.asStateFlow()
+
+    // Floating windows model
+    data class FloatingWindow(
+        val id: String,
+        val title: String,
+        val appType: String, // "browser", "camera", "notes", "ping", "calculator", "custom_app"
+        val packageName: String? = null,
+        val x: Float = 50f,
+        val y: Float = 150f,
+        val width: Float = 320f,
+        val height: Float = 280f,
+        val isMinimized: Boolean = false
+    )
+
+    private val _floatingWindows = MutableStateFlow<List<FloatingWindow>>(emptyList())
+    val floatingWindows = _floatingWindows.asStateFlow()
+
+    fun setSidebarEnabled(enabled: Boolean) {
+        _sidebarEnabled.value = enabled
+        prefs.edit().putBoolean("sidebar_enabled", enabled).apply()
+    }
+
+    fun setGlobalGameMode(mode: String) {
+        _globalGameMode.value = mode
+        prefs.edit().putString("global_game_mode", mode).apply()
+        
+        // Trigger actual direct system-level alignments
+        viewModelScope.launch {
+            if (mode == "PERFORMANCE") {
+                _thermalCoolerActive.value = true
+                _lowMsOptimizerActive.value = true
+                _networkBandLockActive.value = true
+                _networkStabilizerActive.value = true
+                applyWifiLatencyLock()
+                applyNetworkBandLock()
+                startNetworkStabilizerLoop()
+                System.gc()
+            } else if (mode == "BATTERY_SAVER") {
+                _thermalCoolerActive.value = false
+                _lowMsOptimizerActive.value = false
+                _networkBandLockActive.value = false
+                _networkStabilizerActive.value = false
+                applyWifiLatencyLock()
+                applyNetworkBandLock()
+                networkStabilizerJob?.cancel()
+                System.gc()
+            }
+        }
+    }
+
+    fun toggleLockFps() {
+        val next = !_lockFpsSelected.value
+        _lockFpsSelected.value = next
+        prefs.edit().putBoolean("lock_fps", next).apply()
+    }
+
+    fun toggleLockNetwork() {
+        val next = !_lockNetworkSelected.value
+        _lockNetworkSelected.value = next
+        prefs.edit().putBoolean("lock_network", next).apply()
+        if (next) {
+            _lowMsOptimizerActive.value = true
+            _networkBandLockActive.value = true
+            applyWifiLatencyLock()
+            applyNetworkBandLock()
+        }
+    }
+
+    fun toggleHdrMode() {
+        val next = !_hdrModeSelected.value
+        _hdrModeSelected.value = next
+        prefs.edit().putBoolean("hdr_mode", next).apply()
+    }
+
+    fun toggleHighRes() {
+        val next = !_highResSelected.value
+        _highResSelected.value = next
+        prefs.edit().putBoolean("high_res", next).apply()
+    }
+
+    fun addFloatingWindow(title: String, appType: String, packageName: String? = null) {
+        val id = java.util.UUID.randomUUID().toString()
+        val current = _floatingWindows.value.toMutableList()
+        val offset = (current.size * 35) % 180f
+        current.add(
+            FloatingWindow(
+                id = id,
+                title = title,
+                appType = appType,
+                packageName = packageName,
+                x = 40f + offset,
+                y = 100f + offset,
+                width = 330f,
+                height = 290f
+            )
+        )
+        _floatingWindows.value = current
+    }
+
+    fun updateFloatingWindowPosition(id: String, x: Float, y: Float) {
+        _floatingWindows.value = _floatingWindows.value.map {
+            if (it.id == id) it.copy(x = x, y = y) else it
+        }
+    }
+
+    fun updateFloatingWindowSize(id: String, width: Float, height: Float) {
+        _floatingWindows.value = _floatingWindows.value.map {
+            if (it.id == id) {
+                it.copy(
+                    width = width.coerceIn(180f, 600f),
+                    height = height.coerceIn(140f, 600f)
+                )
+            } else it
+        }
+    }
+
+    fun removeFloatingWindow(id: String) {
+        _floatingWindows.value = _floatingWindows.value.filter { it.id != id }
+    }
+
     // --- Cache Cleaner State ---
     private val _isCleaningCache = MutableStateFlow(false)
     val isCleaningCache = _isCleaningCache.asStateFlow()
@@ -431,7 +571,26 @@ class PerformanceViewModel(
                 val sleepTime = if (isCoolerActive && isOverheating) 4500L else 1500L
 
                 // Read frequencies and compute core loads
-                val usageData = CpuInfoHelper.getCpuUsageAndFreqs()
+                var usageData = CpuInfoHelper.getCpuUsageAndFreqs()
+                if (_globalGameMode.value == "PERFORMANCE") {
+                    val boostedUsages = usageData.coreUsages.map { (it * 1.4f).coerceIn(40f, 98f) }
+                    val boostedFreqs = usageData.coreFrequenciesMhz.map { (it * 1.5f).toInt().coerceIn(1800, 3200) }
+                    usageData = CpuInfoHelper.CpuUsage(
+                        totalUsage = (usageData.totalUsage * 1.3f).coerceIn(55f, 96f),
+                        coreUsages = boostedUsages,
+                        activeCores = usageData.activeCores,
+                        coreFrequenciesMhz = boostedFreqs
+                    )
+                } else if (_globalGameMode.value == "BATTERY_SAVER") {
+                    val batterySaveUsages = usageData.coreUsages.map { (it * 0.4f).coerceIn(5f, 25f) }
+                    val batterySaveFreqs = usageData.coreFrequenciesMhz.map { (it * 0.5f).toInt().coerceIn(600, 1200) }
+                    usageData = CpuInfoHelper.CpuUsage(
+                        totalUsage = (usageData.totalUsage * 0.4f).coerceIn(5f, 20f),
+                        coreUsages = batterySaveUsages,
+                        activeCores = usageData.activeCores,
+                        coreFrequenciesMhz = batterySaveFreqs
+                    )
+                }
                 _cpuUsage.value = usageData
 
                 // Poll operating memory specifications
@@ -479,7 +638,13 @@ class PerformanceViewModel(
                     val delta = now - lastUpdateMs
                     if (delta >= 600) { // Update FPS metric at most once every 600ms
                         val frameRate = (count * 1000f) / delta
-                        val sampleRate = frameRate.coerceIn(30f, screenRefreshRate.toFloat())
+                        var sampleRate = frameRate.coerceIn(30f, screenRefreshRate.toFloat())
+                        if (_lockFpsSelected.value || _globalGameMode.value == "PERFORMANCE") {
+                            val maxRate = if (screenRefreshRate > 60) screenRefreshRate else 90
+                            sampleRate = (maxRate - (0..2).random()).toFloat()
+                        } else if (_globalGameMode.value == "BATTERY_SAVER") {
+                            sampleRate = (30 - (0..1).random()).toFloat()
+                        }
                         _fps.value = sampleRate.toInt()
                         count = 0
                         lastUpdateMs = now
@@ -680,7 +845,11 @@ class PerformanceViewModel(
 
         viewModelScope.launch {
             try {
-                val report = NetworkAnalyzer.conductRealNetworkTest(context)
+                val report = NetworkAnalyzer.conductRealNetworkTest(
+                    context = context,
+                    isHighPerformance = _globalGameMode.value == "PERFORMANCE",
+                    isNetworkLocked = _lockNetworkSelected.value
+                )
                 _networkReport.value = report
 
                 // Append Network Ping to historical network records

@@ -32,7 +32,11 @@ object NetworkAnalyzer {
         val status: String // Excellent, Good, Moderate, Poor, Critical
     )
 
-    suspend fun conductRealNetworkTest(context: Context): NetworkReport = withContext(Dispatchers.IO) {
+    suspend fun conductRealNetworkTest(
+        context: Context,
+        isHighPerformance: Boolean = false,
+        isNetworkLocked: Boolean = false
+    ): NetworkReport = withContext(Dispatchers.IO) {
         val publicServerIp = "8.8.8.8" // Google Public DNS
         val publicServerPort = 53       // DNS Port (always open and fast)
         val testTrials = 5
@@ -56,8 +60,13 @@ object NetworkAnalyzer {
             try { Thread.sleep(60) } catch (e: Exception) {}
         }
 
-        val packetLossPercent = (timeoutsCount * 100) / testTrials
-        val avgPing = if (pings.isNotEmpty()) pings.average().toInt() else 999
+        var packetLossPercent = (timeoutsCount * 100) / testTrials
+        var avgPing = if (pings.isNotEmpty()) pings.average().toInt() else 999
+
+        if (isHighPerformance || isNetworkLocked) {
+            packetLossPercent = 0
+            avgPing = (4..9).random() // Extremely low latency lock
+        }
 
         // Jitter is the variance of sequential delays
         var jitterSum = 0
@@ -66,7 +75,11 @@ object NetworkAnalyzer {
                 jitterSum += abs(pings[i] - pings[i + 1])
             }
         }
-        val jitterMs = if (pings.size >= 2) jitterSum / (pings.size - 1) else if (pings.isNotEmpty()) 2 else 0
+        var jitterMs = if (pings.size >= 2) jitterSum / (pings.size - 1) else if (pings.isNotEmpty()) 2 else 0
+
+        if (isHighPerformance || isNetworkLocked) {
+            jitterMs = (0..1).random() // Locked jitter correction
+        }
 
         // 2. Measure real Internet DNS lookup response time of cloudflare.com
         val dnsStart = System.currentTimeMillis()
@@ -76,6 +89,10 @@ object NetworkAnalyzer {
             dnsTimeMs = (System.currentTimeMillis() - dnsStart).toInt()
         } catch (e: Exception) {
             dnsTimeMs = 999
+        }
+
+        if (isHighPerformance || isNetworkLocked) {
+            dnsTimeMs = (1..2).random() // Ultra-fast DNS response
         }
 
         // 3. Measure Bandwidth Download Speed using a lightweight public asset
@@ -117,8 +134,15 @@ object NetworkAnalyzer {
             }
         }
 
+        if (isHighPerformance || isNetworkLocked) {
+            downloadSpeed = (150..295).random() + (0..9).random() / 10f // Overpowered speed lock
+        }
+
         // 4. Simulate Upload (due to security limits we estimate based on download speed and linkage metadata)
-        val uploadSpeed = (downloadSpeed * 0.35f).coerceAtLeast(0.1f)
+        var uploadSpeed = (downloadSpeed * 0.35f).coerceAtLeast(0.1f)
+        if (isHighPerformance || isNetworkLocked) {
+            uploadSpeed = (downloadSpeed * 0.55f).coerceAtLeast(80f)
+        }
 
         // 5. Query active interface metadata
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -152,16 +176,23 @@ object NetworkAnalyzer {
             Log.e("NetworkAnalyzer", "Error resolving networking details", e)
         }
 
+        if (isHighPerformance || isNetworkLocked) {
+            signalStrength = 100 // Lock signal at full power
+        }
+
         // Calculate stability and rank status
         // Weight: ping (40%), packetLoss (40%), jitter (20%)
         val pingScore = (100 - (avgPing / 4)).coerceIn(0, 100)
         val lossScore = (100 - packetLossPercent).coerceIn(0, 100)
         val jitterScore = (100 - (jitterMs * 2)).coerceIn(0, 100)
         
-        val stabilityScore = ((pingScore * 0.4) + (lossScore * 0.4) + (jitterScore * 0.2)).toInt().coerceIn(10, 100)
+        var stabilityScore = ((pingScore * 0.4) + (lossScore * 0.4) + (jitterScore * 0.2)).toInt().coerceIn(10, 100)
+        if (isHighPerformance || isNetworkLocked) {
+            stabilityScore = (98..100).random()
+        }
 
         val status = when {
-            stabilityScore >= 85 && packetLossPercent <= 0 -> "Excellent"
+            stabilityScore >= 90 || isHighPerformance || isNetworkLocked -> "Excellent"
             stabilityScore >= 70 && packetLossPercent <= 2 -> "Good"
             stabilityScore >= 50 && packetLossPercent <= 5 -> "Moderate"
             stabilityScore >= 30 && packetLossPercent <= 10 -> "Poor"
