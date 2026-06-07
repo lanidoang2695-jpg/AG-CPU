@@ -24,6 +24,7 @@ import java.net.InetSocketAddress
 class BoosterForegroundService : Service() {
 
     private var wifiLock: WifiManager.WifiLock? = null
+    private var multicastLock: WifiManager.MulticastLock? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var isTurboActive = false
     private var turboJob: Job? = null
@@ -114,9 +115,20 @@ class BoosterForegroundService : Service() {
                         Log.d("BoosterService", "Acquired real low-latency Wi-Fi lock")
                     }
                 }
+
+                // Acquire Multicast lock to ensure broadcast packets don't queue or force sleep cycles 
+                if (multicastLock == null) {
+                    multicastLock = wm.createMulticastLock("Booster::WiFiMulticastActive")
+                }
+                multicastLock?.let {
+                    if (!it.isHeld) {
+                        it.acquire()
+                        Log.d("BoosterService", "Acquired real Wi-Fi Multicast Lock")
+                    }
+                }
             }
         } catch (e: Exception) {
-            Log.e("BoosterService", "Failed to acquire WifiLock", e)
+            Log.e("BoosterService", "Failed to acquire WifiLock/MulticastLock", e)
         }
 
         try {
@@ -140,33 +152,46 @@ class BoosterForegroundService : Service() {
         // Sends tiny, non-intrusive packets to keep the interface at peak throughput and prevent sleep.
         turboJob?.cancel()
         turboJob = serviceScope.launch {
+            // Adjust Thread Priority on the executing background pool thread to URGENT_AUDIO to prevent scheduler lag
+            try {
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO)
+            } catch (e: Exception) {}
+
             val clDns = InetAddress.getByName("1.1.1.1") // Cloudflare DNS
             val gDns = InetAddress.getByName("8.8.8.8")  // Google DNS
-            var packetCounter = 0
             
             while (isTurboActive) {
                 try {
-                    // Send tiny high-speed UDP payload (1-byte heartbeat) to refresh transceiver power rails
+                    // Instantly warm up transmission trails
                     val socket = DatagramSocket()
-                    val targetAddress = if (packetCounter % 2 == 0) clDns else gDns
+                    // Set Type of Service to IPTOS_LOWDELAY (0x10) to bypass intermediate queues with QoS tags
+                    try {
+                        socket.trafficClass = 0x10
+                    } catch (e: Exception) {}
+                    
                     val buf = ByteArray(1) { 0xA5.toByte() }
-                    val packet = DatagramPacket(buf, buf.size, targetAddress, 53)
                     
-                    socket.send(packet)
+                    // Concurrently target multiple public servers to reserve bidirectional NAT pathways on router/switch
+                    val packetCloudflare = DatagramPacket(buf, buf.size, clDns, 53)
+                    val packetGoogle = DatagramPacket(buf, buf.size, gDns, 53)
+                    
+                    socket.send(packetCloudflare)
+                    socket.send(packetGoogle)
                     socket.close()
-                    
-                    packetCounter++
                 } catch (e: Exception) {
-                    // TCP Connect keepalive fallback
+                    // TCP Connect keepalive fallback with low delay class
                     try {
                         val fallbackSocket = Socket()
+                        try {
+                            fallbackSocket.trafficClass = 0x10
+                        } catch (ex: Exception) {}
                         fallbackSocket.connect(InetSocketAddress("1.1.1.1", 53), 100)
                         fallbackSocket.close()
                     } catch (ex: Exception) {}
                 }
                 
-                // Keep-alive frequency: MLBB tick rates are ~30-60Hz. Under 500ms preserves peak radio mode.
-                delay(300)
+                // Keep-alive frequency set to 120ms to completely prevent Wi-Fi power states from scaling down
+                delay(120)
             }
         }
         
@@ -187,6 +212,15 @@ class BoosterForegroundService : Service() {
                 if (it.isHeld) {
                     it.release()
                     Log.d("BoosterService", "Released Wi-Fi lock")
+                }
+            }
+        } catch (e: Exception) {}
+
+        try {
+            multicastLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                    Log.d("BoosterService", "Released Multicast lock")
                 }
             }
         } catch (e: Exception) {}
