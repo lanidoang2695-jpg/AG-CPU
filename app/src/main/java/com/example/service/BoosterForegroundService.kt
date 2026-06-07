@@ -152,9 +152,9 @@ class BoosterForegroundService : Service() {
         // Sends tiny, non-intrusive packets to keep the interface at peak throughput and prevent sleep.
         turboJob?.cancel()
         turboJob = serviceScope.launch {
-            // Adjust Thread Priority on the executing background pool thread to URGENT_AUDIO to prevent scheduler lag
+            // Adjust Thread Priority on the executing background pool thread to extreme priority
             try {
-                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO)
+                android.os.Process.setThreadPriority(-20) // Extreme priority
             } catch (e: Exception) {}
 
             val clDns = InetAddress.getByName("1.1.1.1") // Cloudflare DNS
@@ -162,36 +162,58 @@ class BoosterForegroundService : Service() {
             
             while (isTurboActive) {
                 try {
+                    val wm = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+                    val gatewayInt = wm?.dhcpInfo?.gateway ?: 0
+                    val gatewayAddr = if (gatewayInt != 0) {
+                        val ipBytes = byteArrayOf(
+                            (gatewayInt and 0xff).toByte(),
+                            (gatewayInt shr 8 and 0xff).toByte(),
+                            (gatewayInt shr 16 and 0xff).toByte(),
+                            (gatewayInt shr 24 and 0xff).toByte()
+                        )
+                        try { InetAddress.getByAddress(ipBytes) } catch (e: Exception) { null }
+                    } else {
+                        null
+                    }
+
                     // Instantly warm up transmission trails
                     val socket = DatagramSocket()
-                    // Set Type of Service to IPTOS_LOWDELAY (0x10) to bypass intermediate queues with QoS tags
+                    
+                    // Set Type of Service to DSCP EF - Expedited Forwarding / Voice Class (0xB8)
+                    // This maps directly to the peak AC_VO (Access Category Voice) high-priority queue on WMM-enabled Access Points.
                     try {
-                        socket.trafficClass = 0x10
+                        socket.trafficClass = 0xB8
                     } catch (e: Exception) {}
                     
                     val buf = ByteArray(1) { 0xA5.toByte() }
                     
-                    // Concurrently target multiple public servers to reserve bidirectional NAT pathways on router/switch
+                    // Concurrently target Cloudflare, Google, and the local Gateway router to eliminate medium-contention latency
                     val packetCloudflare = DatagramPacket(buf, buf.size, clDns, 53)
                     val packetGoogle = DatagramPacket(buf, buf.size, gDns, 53)
                     
                     socket.send(packetCloudflare)
                     socket.send(packetGoogle)
+                    
+                    gatewayAddr?.let {
+                        val packetGateway = DatagramPacket(buf, buf.size, it, 53)
+                        socket.send(packetGateway)
+                    }
+                    
                     socket.close()
                 } catch (e: Exception) {
-                    // TCP Connect keepalive fallback with low delay class
+                    // TCP Connect keepalive fallback with Voice QoS tag
                     try {
                         val fallbackSocket = Socket()
                         try {
-                            fallbackSocket.trafficClass = 0x10
+                            fallbackSocket.trafficClass = 0xB8
                         } catch (ex: Exception) {}
-                        fallbackSocket.connect(InetSocketAddress("1.1.1.1", 53), 100)
+                        fallbackSocket.connect(InetSocketAddress("1.1.1.1", 53), 80)
                         fallbackSocket.close()
                     } catch (ex: Exception) {}
                 }
                 
-                // Keep-alive frequency set to 120ms to completely prevent Wi-Fi power states from scaling down
-                delay(120)
+                // Hyper-frequency set to 60ms to completely prevent transceiver sleep states
+                delay(60)
             }
         }
         
