@@ -318,6 +318,25 @@ class PerformanceViewModel(
         val next = !_wifiTurboSelected.value
         _wifiTurboSelected.value = next
         prefs.edit().putBoolean("wifi_turbo", next).apply()
+        
+        // Trigger foreground service action so background optimization is 100% active during gameplay
+        try {
+            val intent = Intent(context, com.example.service.BoosterForegroundService::class.java).apply {
+                action = if (next) {
+                    com.example.service.BoosterForegroundService.ACTION_START_TURBO
+                } else {
+                    com.example.service.BoosterForegroundService.ACTION_STOP_TURBO
+                }
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        } catch (e: Exception) {
+            Log.e("PerformanceViewModel", "Failed to send turbo action to service", e)
+        }
+
         if (next) {
             _lowMsOptimizerActive.value = true
             _networkBandLockActive.value = true

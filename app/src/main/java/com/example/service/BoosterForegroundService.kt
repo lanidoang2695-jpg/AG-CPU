@@ -7,16 +7,36 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.MainActivity
+import kotlinx.coroutines.*
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetAddress
+import java.net.Socket
+import java.net.InetSocketAddress
 
 class BoosterForegroundService : Service() {
 
+    private var wifiLock: WifiManager.WifiLock? = null
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var isTurboActive = false
+    private var turboJob: Job? = null
+    
+    private val serviceJob = SupervisorJob()
+    private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
+
     companion object {
-        private const val CHANNEL_ID = "ag_booster_active_channel"
-        private const val NOTIFICATION_ID = 4821
+        const val CHANNEL_ID = "ag_booster_active_channel"
+        const val NOTIFICATION_ID = 4821
+
+        const val ACTION_START_TURBO = "com.example.service.ACTION_START_TURBO"
+        const val ACTION_STOP_TURBO = "com.example.service.ACTION_STOP_TURBO"
 
         fun startService(context: Context) {
             val intent = Intent(context, BoosterForegroundService::class.java)
@@ -27,7 +47,6 @@ class BoosterForegroundService : Service() {
                     context.startService(intent)
                 }
             } catch (e: Exception) {
-                // Fallback direct start to keep robust on all systems
                 try {
                     context.startService(intent)
                 } catch (ex: Exception) {}
@@ -43,19 +62,160 @@ class BoosterForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        
+        // Initial state load
+        val prefs = getSharedPreferences("ag_booster_prefs", Context.MODE_PRIVATE)
+        val isWifiTurboEnabled = prefs.getBoolean("wifi_turbo", false)
+        if (isWifiTurboEnabled) {
+            startWifiTurboBoost()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notification = createNotification(
-            "AG Booster Active Engine", 
-            "Optimisasi CPU & Anti-Lag Jaringan 100% Berjalan Stabil"
-        )
+        val action = intent?.action
+        if (action == ACTION_START_TURBO) {
+            startWifiTurboBoost()
+        } else if (action == ACTION_STOP_TURBO) {
+            stopWifiTurboBoost()
+        }
+
+        val title = if (isTurboActive) "AG Booster [TURBO WI-FI AKTIF]" else "AG Booster Active Engine"
+        val desc = if (isTurboActive) "Mengunci latensi & mengeliminasi jitter Wi-Fi (Low Ping MLBB)" else "Optimisasi CPU & Anti-Lag Jaringan Berjalan Stabil"
+        
+        val notification = createNotification(title, desc)
         try {
             startForeground(NOTIFICATION_ID, notification)
         } catch (e: Exception) {
             // Safe fallback
         }
         return START_STICKY
+    }
+
+    private fun startWifiTurboBoost() {
+        if (isTurboActive) return
+        isTurboActive = true
+        Log.d("BoosterService", "Starting high frequency real-time Wi-Fi Low-Latency Turbo Boost")
+        
+        // 1. Acquire Locks
+        try {
+            val wm = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            if (wm != null) {
+                if (wifiLock == null) {
+                    wifiLock = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        wm.createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "Booster::WiFiLowLatencyActive")
+                    } else {
+                        @Suppress("DEPRECATION")
+                        wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "Booster::WiFiHighPerfActive")
+                    }
+                }
+                wifiLock?.let {
+                    if (!it.isHeld) {
+                        it.acquire()
+                        Log.d("BoosterService", "Acquired real low-latency Wi-Fi lock")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("BoosterService", "Failed to acquire WifiLock", e)
+        }
+
+        try {
+            val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager
+            if (pm != null) {
+                if (wakeLock == null) {
+                    wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Booster::CPULatencyWakeLock")
+                }
+                wakeLock?.let {
+                    if (!it.isHeld) {
+                        it.acquire()
+                        Log.d("BoosterService", "Acquired real CPU WakeLock")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("BoosterService", "Failed to acquire WakeLock", e)
+        }
+
+        // 2. Active Radio Warming & Socket Optimization Loop
+        // Sends tiny, non-intrusive packets to keep the interface at peak throughput and prevent sleep.
+        turboJob?.cancel()
+        turboJob = serviceScope.launch {
+            val clDns = InetAddress.getByName("1.1.1.1") // Cloudflare DNS
+            val gDns = InetAddress.getByName("8.8.8.8")  // Google DNS
+            var packetCounter = 0
+            
+            while (isTurboActive) {
+                try {
+                    // Send tiny high-speed UDP payload (1-byte heartbeat) to refresh transceiver power rails
+                    val socket = DatagramSocket()
+                    val targetAddress = if (packetCounter % 2 == 0) clDns else gDns
+                    val buf = ByteArray(1) { 0xA5.toByte() }
+                    val packet = DatagramPacket(buf, buf.size, targetAddress, 53)
+                    
+                    socket.send(packet)
+                    socket.close()
+                    
+                    packetCounter++
+                } catch (e: Exception) {
+                    // TCP Connect keepalive fallback
+                    try {
+                        val fallbackSocket = Socket()
+                        fallbackSocket.connect(InetSocketAddress("1.1.1.1", 53), 100)
+                        fallbackSocket.close()
+                    } catch (ex: Exception) {}
+                }
+                
+                // Keep-alive frequency: MLBB tick rates are ~30-60Hz. Under 500ms preserves peak radio mode.
+                delay(300)
+            }
+        }
+        
+        // Update notification
+        updateRunningNotification()
+    }
+
+    private fun stopWifiTurboBoost() {
+        if (!isTurboActive) return
+        isTurboActive = false
+        Log.d("BoosterService", "Stopping Wi-Fi Turbo Boost")
+        
+        turboJob?.cancel()
+        turboJob = null
+
+        try {
+            wifiLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                    Log.d("BoosterService", "Released Wi-Fi lock")
+                }
+            }
+        } catch (e: Exception) {}
+
+        try {
+            wakeLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                    Log.d("BoosterService", "Released CPU WakeLock")
+                }
+            }
+        } catch (e: Exception) {}
+        
+        updateRunningNotification()
+    }
+
+    private fun updateRunningNotification() {
+        val title = if (isTurboActive) "AG Booster [TURBO WI-FI AKTIF]" else "AG Booster Active Engine"
+        val desc = if (isTurboActive) "Mengunci latensi & mengeliminasi jitter Wi-Fi (Low Ping MLBB)" else "Optimisasi CPU & Anti-Lag Jaringan Berjalan Stabil"
+        
+        val notification = createNotification(title, desc)
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        manager?.notify(NOTIFICATION_ID, notification)
+    }
+
+    override fun onDestroy() {
+        stopWifiTurboBoost()
+        serviceJob.cancel()
+        super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
