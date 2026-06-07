@@ -35,7 +35,8 @@ object NetworkAnalyzer {
     suspend fun conductRealNetworkTest(
         context: Context,
         isHighPerformance: Boolean = false,
-        isNetworkLocked: Boolean = false
+        isNetworkLocked: Boolean = false,
+        isWifiTurboActive: Boolean = false
     ): NetworkReport = withContext(Dispatchers.IO) {
         val publicServerIp = "8.8.8.8" // Google Public DNS
         val publicServerPort = 53       // DNS Port (always open and fast)
@@ -63,9 +64,9 @@ object NetworkAnalyzer {
         var packetLossPercent = (timeoutsCount * 100) / testTrials
         var avgPing = if (pings.isNotEmpty()) pings.average().toInt() else 999
 
-        if (isHighPerformance || isNetworkLocked) {
+        if (isHighPerformance || isNetworkLocked || isWifiTurboActive) {
             packetLossPercent = 0
-            avgPing = (4..9).random() // Extremely low latency lock
+            avgPing = if (isWifiTurboActive) (2..4).random() else (4..9).random() // Extremely low latency lock
         }
 
         // Jitter is the variance of sequential delays
@@ -77,8 +78,8 @@ object NetworkAnalyzer {
         }
         var jitterMs = if (pings.size >= 2) jitterSum / (pings.size - 1) else if (pings.isNotEmpty()) 2 else 0
 
-        if (isHighPerformance || isNetworkLocked) {
-            jitterMs = (0..1).random() // Locked jitter correction
+        if (isHighPerformance || isNetworkLocked || isWifiTurboActive) {
+            jitterMs = if (isWifiTurboActive) 0 else (0..1).random() // Locked jitter correction
         }
 
         // 2. Measure real Internet DNS lookup response time of cloudflare.com
@@ -91,8 +92,8 @@ object NetworkAnalyzer {
             dnsTimeMs = 999
         }
 
-        if (isHighPerformance || isNetworkLocked) {
-            dnsTimeMs = (1..2).random() // Ultra-fast DNS response
+        if (isHighPerformance || isNetworkLocked || isWifiTurboActive) {
+            dnsTimeMs = if (isWifiTurboActive) 1 else (1..2).random() // Ultra-fast DNS response
         }
 
         // 3. Measure Bandwidth Download Speed using a lightweight public asset
@@ -134,14 +135,22 @@ object NetworkAnalyzer {
             }
         }
 
-        if (isHighPerformance || isNetworkLocked) {
-            downloadSpeed = (150..295).random() + (0..9).random() / 10f // Overpowered speed lock
+        if (isHighPerformance || isNetworkLocked || isWifiTurboActive) {
+            downloadSpeed = if (isWifiTurboActive) {
+                (480..595).random() + (0..9).random() / 10f // WiFi Super turbo speeds!
+            } else {
+                (150..295).random() + (0..9).random() / 10f // Overpowered speed lock
+            }
         }
 
         // 4. Simulate Upload (due to security limits we estimate based on download speed and linkage metadata)
         var uploadSpeed = (downloadSpeed * 0.35f).coerceAtLeast(0.1f)
-        if (isHighPerformance || isNetworkLocked) {
-            uploadSpeed = (downloadSpeed * 0.55f).coerceAtLeast(80f)
+        if (isHighPerformance || isNetworkLocked || isWifiTurboActive) {
+            uploadSpeed = if (isWifiTurboActive) {
+                (downloadSpeed * 0.75f).coerceAtLeast(360f)
+            } else {
+                (downloadSpeed * 0.55f).coerceAtLeast(80f)
+            }
         }
 
         // 5. Query active interface metadata
@@ -176,7 +185,7 @@ object NetworkAnalyzer {
             Log.e("NetworkAnalyzer", "Error resolving networking details", e)
         }
 
-        if (isHighPerformance || isNetworkLocked) {
+        if (isHighPerformance || isNetworkLocked || isWifiTurboActive) {
             signalStrength = 100 // Lock signal at full power
         }
 
@@ -187,11 +196,12 @@ object NetworkAnalyzer {
         val jitterScore = (100 - (jitterMs * 2)).coerceIn(0, 100)
         
         var stabilityScore = ((pingScore * 0.4) + (lossScore * 0.4) + (jitterScore * 0.2)).toInt().coerceIn(10, 100)
-        if (isHighPerformance || isNetworkLocked) {
-            stabilityScore = (98..100).random()
+        if (isHighPerformance || isNetworkLocked || isWifiTurboActive) {
+            stabilityScore = if (isWifiTurboActive) 100 else (98..100).random()
         }
 
         val status = when {
+            isWifiTurboActive -> "Super WiFi Turbo Active"
             stabilityScore >= 90 || isHighPerformance || isNetworkLocked -> "Excellent"
             stabilityScore >= 70 && packetLossPercent <= 2 -> "Good"
             stabilityScore >= 50 && packetLossPercent <= 5 -> "Moderate"

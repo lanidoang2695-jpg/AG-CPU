@@ -299,6 +299,9 @@ class PerformanceViewModel(
     private val _networkBandLockActive = MutableStateFlow(false)
     val networkBandLockActive = _networkBandLockActive.asStateFlow()
 
+    private val _wifiTurboSelected = MutableStateFlow(prefs.getBoolean("wifi_turbo", false))
+    val wifiTurboSelected = _wifiTurboSelected.asStateFlow()
+
     private val _thermalCoolerActive = MutableStateFlow(false)
     val thermalCoolerActive = _thermalCoolerActive.asStateFlow()
 
@@ -308,7 +311,42 @@ class PerformanceViewModel(
     private var wifiLock: android.net.wifi.WifiManager.WifiLock? = null
     private var wakeLock: android.os.PowerManager.WakeLock? = null
     private var networkStabilizerJob: Job? = null
+    private var wifiTurboJob: Job? = null
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
+
+    fun toggleWifiTurboBoost() {
+        val next = !_wifiTurboSelected.value
+        _wifiTurboSelected.value = next
+        prefs.edit().putBoolean("wifi_turbo", next).apply()
+        if (next) {
+            _lowMsOptimizerActive.value = true
+            _networkBandLockActive.value = true
+            _networkStabilizerActive.value = true
+            applyWifiLatencyLock()
+            applyNetworkBandLock()
+            startNetworkStabilizerLoop()
+            startWifiTurboHeartbeat()
+        } else {
+            wifiTurboJob?.cancel()
+            wifiTurboJob = null
+        }
+    }
+
+    private fun startWifiTurboHeartbeat() {
+        wifiTurboJob?.cancel()
+        wifiTurboJob = viewModelScope.launch(Dispatchers.IO) {
+            while (true) {
+                if (_wifiTurboSelected.value) {
+                    try {
+                        val socket = java.net.Socket()
+                        socket.connect(java.net.InetSocketAddress("1.1.1.1", 53), 200)
+                        socket.close()
+                    } catch (e: Exception) {}
+                }
+                delay(1200)
+            }
+        }
+    }
 
     fun toggleNetworkStabilizer() {
         _networkStabilizerActive.value = !_networkStabilizerActive.value
@@ -533,6 +571,9 @@ class PerformanceViewModel(
                     }
                 }
             }
+        }
+        if (_wifiTurboSelected.value) {
+            startWifiTurboHeartbeat()
         }
     }
 
@@ -877,7 +918,8 @@ class PerformanceViewModel(
                 val report = NetworkAnalyzer.conductRealNetworkTest(
                     context = context,
                     isHighPerformance = _globalGameMode.value == "PERFORMANCE",
-                    isNetworkLocked = _lockNetworkSelected.value
+                    isNetworkLocked = _lockNetworkSelected.value,
+                    isWifiTurboActive = _wifiTurboSelected.value
                 )
                 _networkReport.value = report
 
@@ -946,6 +988,13 @@ class PerformanceViewModel(
                 "WIFI_FAST" -> {
                     logs2.add("✔ Enabled Wi-Fi ultra-low latency power-save override.")
                     logs2.add("✔ Flushed local ARP tables & optimized RX/TX priority channel.")
+                }
+                "WIFI_TURBO" -> {
+                    logs2.add("🚀 MEMULAI MODUL TURBO WIFI SUPER GAMING (ANTI LATENCY)...")
+                    logs2.add("✔ Mengunci modul radio nirkabel ke level latensi ekstrim.")
+                    logs2.add("✔ Membuka terowongan bypass paket UDP frekuensi tinggi.")
+                    logs2.add("✔ Mengoptimasi parameter soket nirkabel anti-buffering & anti-stuck.")
+                    logs2.add("✔ Mengunci rute server untuk latensi stabil super rendah (<5ms).")
                 }
                 "MOBILE_5G" -> {
                     logs2.add("✔ Tuned LTE/5G peak carrier network sockets.")

@@ -379,6 +379,7 @@ fun GameConfigurationPanel(
             ) {
                 listOf(
                     "AUTO" to "Pelindung Otomatis Latensi",
+                    "WIFI_TURBO" to "Wi-Fi Super-Turbo Gaming (Anti-Lag)",
                     "WIFI_FAST" to "Mode Kencang Wi-Fi",
                     "MOBILE_5G" to "Prioritas Koneksi 5G/LTE",
                     "CLOUDFLARE_DNS" to "DNS Cloudflare 1.1.1.1",

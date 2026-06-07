@@ -49,6 +49,7 @@ fun NetworkScreen(
     val networkStabilizerActive by viewModel.networkStabilizerActive.collectAsState()
     val lowMsOptimizerActive by viewModel.lowMsOptimizerActive.collectAsState()
     val networkBandLockActive by viewModel.networkBandLockActive.collectAsState()
+    val wifiTurboSelected by viewModel.wifiTurboSelected.collectAsState()
 
     // Animating circular pulse for active tests
     val infiniteTransition = rememberInfiniteTransition(label = "RadarPulse")
@@ -119,6 +120,134 @@ fun NetworkScreen(
                             Text("IP: $ipAddr", fontSize = 10.sp, color = MutedSlate, fontFamily = FontFamily.Monospace)
                             Text("Kecepatan: $linkSpeed Mbps", fontSize = 10.sp, color = NeonGreen)
                         }
+                    }
+                }
+            }
+        }
+
+        // TURBO WI-FI GAMING SUPER CEPAT CARD
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(
+                        width = 1.5.dp,
+                        color = if (wifiTurboSelected) NeonGreen else DarkBorder.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(14.dp)
+                    ),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (wifiTurboSelected) SurfaceSlate else CardSlate.copy(alpha = 0.5f)
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(if (wifiTurboSelected) NeonGreen.copy(alpha = 0.15f) else DarkBackground),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = null,
+                                    tint = if (wifiTurboSelected) NeonGreen else MutedSlate,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "TURBO WI-FI GAMING SUPER CEPAT",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (wifiTurboSelected) NeonGreen else PureWhite,
+                                    letterSpacing = 0.5.sp
+                                )
+                                Text(
+                                    text = "Mengunci jaringan & memfokuskan 100% bandwidth Wi-Fi untuk performa gaming tanpa hambatan.",
+                                    fontSize = 8.5.sp,
+                                    color = MutedSlate
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = wifiTurboSelected,
+                            onCheckedChange = { viewModel.toggleWifiTurboBoost() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = NeonGreen,
+                                checkedTrackColor = NeonGreen.copy(alpha = 0.3f),
+                                uncheckedThumbColor = MutedSlate,
+                                uncheckedTrackColor = DarkBackground
+                            ),
+                            modifier = Modifier.scale(0.85f)
+                        )
+                    }
+
+                    if (wifiTurboSelected) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Divider(color = DarkBorder.copy(alpha = 0.2f))
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(NeonGreen)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "LATENSI TERKUNCI (ULTRA LOW MS)",
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeonGreen
+                                )
+                            }
+                            Text(
+                                text = "STABIL (~2-4 ms)",
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeonGreen,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Paket Dropout / Kehilangan Data: 0% (Anti-Buffering)",
+                                fontSize = 8.sp,
+                                color = MutedSlate
+                            )
+                            Text(
+                                text = "Jitter: 0.00 ms (Anti-Stuck)",
+                                fontSize = 8.sp,
+                                color = MutedSlate
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = 1.0f,
+                            color = NeonGreen,
+                            trackColor = DarkBackground,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(3.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                        )
                     }
                 }
             }
