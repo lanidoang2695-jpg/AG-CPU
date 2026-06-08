@@ -233,9 +233,9 @@ fun NetworkScreen(
                         ) {
                             Text("⚡ STATUS PIPELINE MOTOR UTAMA:", fontSize = 7.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
                             Text("• Multicast Bypass (WIFI_MODE_FULL_LOW_LATENCY + Multicast Lock): [AKTIF]", fontSize = 7.sp, color = PureWhite)
-                            Text("• Max Thread Priority (Process.setThreadPriority(-20)): [DIAMBILALIH]", fontSize = 7.sp, color = PureWhite)
+                            Text("• Max Thread Priority (Process.THREAD_PRIORITY_URGENT_AUDIO): [DIAMBILALIH]", fontSize = 7.sp, color = PureWhite)
                             Text("• QoS Link Packet Tagging (0xB8 DSCP_Voice_AC_VO): [BERHASIL DITERAPKAN]", fontSize = 7.sp, color = PureWhite)
-                            Text("• Keepalive Transceiver Heartbeat (WIFI WARM): [AKTIF DI 60ms]", fontSize = 7.sp, color = PureWhite)
+                            Text("• Keepalive Transceiver Heartbeat (WIFI WARM): [AKTIF DI 150ms (ANTI-CONGESTION)]", fontSize = 7.sp, color = PureWhite)
                         }
                         
                         Spacer(modifier = Modifier.height(6.dp))

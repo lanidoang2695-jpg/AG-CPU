@@ -1077,19 +1077,39 @@ class PerformanceViewModel(
     }
 
     private suspend fun runRealSystemOptimizations(game: GameProfile) = withContext(Dispatchers.IO) {
-        // 1. Invoke aggressive memory sweep and garbage collections
+        // 1. Reclaim massive system RAM by terminating idle resource-hogging background applications
+        try {
+            val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            if (activityManager != null) {
+                val heavyBackgroundPackages = listOf(
+                    "com.android.chrome", "com.facebook.katana", "com.instagram.android", 
+                    "com.zhiliaoapp.musically", "com.ss.android.ugc.trill", "com.whatsapp",
+                    "com.twitter.android", "com.google.android.youtube", "org.telegram.messenger",
+                    "com.snapchat.android", "com.tencent.kiwi", "com.valvesoftware.android.steam.community"
+                )
+                for (pkg in heavyBackgroundPackages) {
+                    try {
+                        activityManager.killBackgroundProcesses(pkg)
+                    } catch (e: Exception) {}
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("PerformanceViewModel", "Failed clearing background processes", e)
+        }
+
+        // 2. Invoke aggressive virtual machine garbage sweep
         System.gc()
         Runtime.getRuntime().runFinalization()
         System.gc()
         
-        // 2. Request Process thread priority boosting for smooth frames (urgent graphics context)
+        // 3. Request Process thread priority boosting for smooth frames (urgent graphics context)
         try {
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_DISPLAY)
         } catch (e: Exception) {
             Log.e("PerformanceViewModel", "Failed setting urgent priority", e)
         }
 
-        // 3. Request PowerManager Sustained Performance Mode
+        // 4. Request PowerManager Sustained Performance Mode
         try {
             val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -1101,10 +1121,10 @@ class PerformanceViewModel(
             Log.e("PerformanceViewModel", "Error signaling performance profile hints", e)
         }
 
-        // 4. Force CPU WakeLock to prevent background sleep/throttling during game sessions
+        // 5. Force CPU WakeLock to prevent background sleep/throttling during game sessions
         applyCpuWakeLock(true)
 
-        // 5. Force Wifi latency lock for gaming session low-ping stability
+        // 6. Force Wifi latency lock for gaming session low-ping stability
         try {
             val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
             if (wm != null && wifiLock == null) {

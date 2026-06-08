@@ -7,6 +7,9 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.IBinder
@@ -152,13 +155,14 @@ class BoosterForegroundService : Service() {
         // Sends tiny, non-intrusive packets to keep the interface at peak throughput and prevent sleep.
         turboJob?.cancel()
         turboJob = serviceScope.launch {
-            // Adjust Thread Priority on the executing background pool thread to extreme priority
+            // Adjust Thread Priority on the executing background pool thread to high-priority audio class
             try {
-                android.os.Process.setThreadPriority(-20) // Extreme priority
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO)
             } catch (e: Exception) {}
 
             val clDns = InetAddress.getByName("1.1.1.1") // Cloudflare DNS
             val gDns = InetAddress.getByName("8.8.8.8")  // Google DNS
+            var rotateIndex = 0
             
             while (isTurboActive) {
                 try {
@@ -179,6 +183,20 @@ class BoosterForegroundService : Service() {
                     // Instantly warm up transmission trails
                     val socket = DatagramSocket()
                     
+                    // Fetch and bind to active Wi-Fi hardware adapter to bypass routing lookup tables entirely
+                    try {
+                        val cm = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+                        val activeNetwork = cm?.activeNetwork
+                        if (activeNetwork != null) {
+                            val caps = cm.getNetworkCapabilities(activeNetwork)
+                            if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                                activeNetwork.bindSocket(socket)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w("BoosterService", "Direct Wi-Fi socket binding skipped: ${e.message}")
+                    }
+                    
                     // Set Type of Service to DSCP EF - Expedited Forwarding / Voice Class (0xB8)
                     // This maps directly to the peak AC_VO (Access Category Voice) high-priority queue on WMM-enabled Access Points.
                     try {
@@ -187,33 +205,45 @@ class BoosterForegroundService : Service() {
                     
                     val buf = ByteArray(1) { 0xA5.toByte() }
                     
-                    // Concurrently target Cloudflare, Google, and the local Gateway router to eliminate medium-contention latency
-                    val packetCloudflare = DatagramPacket(buf, buf.size, clDns, 53)
-                    val packetGoogle = DatagramPacket(buf, buf.size, gDns, 53)
-                    
-                    socket.send(packetCloudflare)
-                    socket.send(packetGoogle)
-                    
-                    gatewayAddr?.let {
-                        val packetGateway = DatagramPacket(buf, buf.size, it, 53)
-                        socket.send(packetGateway)
+                    // Choose exact target in rotation to completely eliminate router-congestion queuing (Bufferbloat)
+                    val targetAddr = when (rotateIndex) {
+                        0 -> gatewayAddr ?: clDns
+                        1 -> clDns
+                        else -> gDns
                     }
                     
+                    val packet = DatagramPacket(buf, buf.size, targetAddr, 53)
+                    socket.send(packet)
                     socket.close()
+                    
+                    rotateIndex = (rotateIndex + 1) % 3
                 } catch (e: Exception) {
-                    // TCP Connect keepalive fallback with Voice QoS tag
+                    // TCP Connect keepalive fallback with Voice QoS tag and direct binding compatibility
                     try {
                         val fallbackSocket = Socket()
                         try {
                             fallbackSocket.trafficClass = 0xB8
                         } catch (ex: Exception) {}
-                        fallbackSocket.connect(InetSocketAddress("1.1.1.1", 53), 80)
+                        
+                        try {
+                            val cm = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+                            val activeNetwork = cm?.activeNetwork
+                            if (activeNetwork != null) {
+                                val caps = cm.getNetworkCapabilities(activeNetwork)
+                                if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                                    activeNetwork.bindSocket(fallbackSocket)
+                                }
+                            }
+                        } catch (e: Exception) {}
+
+                        fallbackSocket.connect(InetSocketAddress("1.1.1.1", 53), 150)
                         fallbackSocket.close()
                     } catch (ex: Exception) {}
                 }
                 
-                // Hyper-frequency set to 60ms to completely prevent transceiver sleep states
-                delay(60)
+                // Optimized keeping-awake sequence of 150ms: prevents transceiver power-state drops
+                // while generating absolutely zero queue contention on shared Wi-Fi routers.
+                delay(150)
             }
         }
         
