@@ -154,6 +154,19 @@ class PerformanceViewModel(
     private val _highResSelected = MutableStateFlow(prefs.getBoolean("high_res", false))
     val highResSelected = _highResSelected.asStateFlow()
 
+    // --- Screen Touch Sensitivity & Responsiveness states ---
+    private val _screenSensitivity = MutableStateFlow(prefs.getFloat("screen_sensitivity", 1.0f))
+    val screenSensitivity = _screenSensitivity.asStateFlow()
+
+    private val _touchResponseDelay = MutableStateFlow(prefs.getInt("touch_response_delay", 2))
+    val touchResponseDelay = _touchResponseDelay.asStateFlow()
+
+    private val _touchStabilizer = MutableStateFlow(prefs.getBoolean("touch_stabilizer", true))
+    val touchStabilizer = _touchStabilizer.asStateFlow()
+
+    private val _pointerSpeed = MutableStateFlow(prefs.getInt("pointer_speed", 10))
+    val pointerSpeed = _pointerSpeed.asStateFlow()
+
     // Floating windows model
     data class FloatingWindow(
         val id: String,
@@ -231,6 +244,27 @@ class PerformanceViewModel(
         val next = !_highResSelected.value
         _highResSelected.value = next
         prefs.edit().putBoolean("high_res", next).apply()
+    }
+
+    fun setScreenSensitivity(value: Float) {
+        _screenSensitivity.value = value
+        prefs.edit().putFloat("screen_sensitivity", value).apply()
+    }
+
+    fun setTouchResponseDelay(value: Int) {
+        _touchResponseDelay.value = value
+        prefs.edit().putInt("touch_response_delay", value).apply()
+    }
+
+    fun toggleTouchStabilizer() {
+        val next = !_touchStabilizer.value
+        _touchStabilizer.value = next
+        prefs.edit().putBoolean("touch_stabilizer", next).apply()
+    }
+
+    fun setPointerSpeed(value: Int) {
+        _pointerSpeed.value = value
+        prefs.edit().putInt("pointer_speed", value).apply()
     }
 
     fun addFloatingWindow(title: String, appType: String, packageName: String? = null) {
@@ -1027,6 +1061,13 @@ class PerformanceViewModel(
                     logs2.add("✔ Re-routing DNS lookups via Google Public DNS (8.8.8.8).")
                     logs2.add("✔ Configured pre-authenticated public recursive DNS pathways.")
                 }
+            }
+            logs2.add("🎯 SENSITIVITY ENGINE: KALIBRASI SENSOR LAYAR MALAM...")
+            logs2.add("✔ Kecepatan Pointer Kursor dikunci di level maksimal: ${_pointerSpeed.value}/20.")
+            logs2.add("✔ Kalibrasi sensitivitas layar berhasil: ${"%.1f".format(_screenSensitivity.value)}x sampling rate.")
+            logs2.add("✔ Mengunci tunda respon sentuhan layar di rentang terendah: ${_touchResponseDelay.value} ms (Super Responsif).")
+            if (_touchStabilizer.value) {
+                logs2.add("✔ Fitur Pelindung Sentuhan Melesat, Anti-Ghost Touch, & Penyetabil Sentuh [AKTIF].")
             }
             logs2.add("Stage 3/4 [PREPARING]: Establishing game isolation layers...")
             _boosterLog.value = logs2

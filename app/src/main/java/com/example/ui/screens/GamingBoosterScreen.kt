@@ -140,6 +140,10 @@ fun GamingBoosterScreen(
                 )
             }
 
+            item {
+                ScreenSensitivityPanel(viewModel = viewModel)
+            }
+
             // Big Glowing START BOOST button
             item {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -582,4 +586,192 @@ fun ManageGameDeckDialog(
         },
         containerColor = SurfaceSlate
     )
+}
+
+@Composable
+fun ScreenSensitivityPanel(
+    viewModel: PerformanceViewModel
+) {
+    val screenSensitivity by viewModel.screenSensitivity.collectAsState()
+    val touchResponseDelay by viewModel.touchResponseDelay.collectAsState()
+    val touchStabilizer by viewModel.touchStabilizer.collectAsState()
+    val pointerSpeed by viewModel.pointerSpeed.collectAsState()
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, DarkBorder.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
+        colors = CardDefaults.cardColors(containerColor = SurfaceSlate)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "OPTIMALISASI SENSITIVITAS INDERA SENTUH",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = NeonCyan,
+                    letterSpacing = 0.5.sp
+                )
+                
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(NeonCyan.copy(alpha = 0.12f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        "HARDWARE KALIB",
+                        fontSize = 7.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = NeonCyan
+                    )
+                }
+            }
+            
+            Text(
+                "Meningkatkan sampling rate layar & kecepatan kursor pointer untuk performa super instan di permainan MLBB.",
+                fontSize = 9.sp,
+                color = MutedSlate,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 1. Screen Sensitivity Slider
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = null,
+                        tint = MutedSlate,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Sensitivitas Sapuan Layar", fontSize = 10.sp, color = PureWhite)
+                }
+                Text("${"%.1f".format(screenSensitivity)}x", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Slider(
+                value = screenSensitivity,
+                onValueChange = { viewModel.setScreenSensitivity(it) },
+                valueRange = 0.5f..2.0f,
+                steps = 14,
+                colors = SliderDefaults.colors(
+                    activeTrackColor = NeonCyan,
+                    inactiveTrackColor = DarkBorder,
+                    thumbColor = NeonCyan
+                ),
+                modifier = Modifier.height(24.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 2. Pointer Speed Slider
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Menu,
+                        contentDescription = null,
+                        tint = MutedSlate,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Kecepatan Respon Pointer (Pointerspeed)", fontSize = 10.sp, color = PureWhite)
+                }
+                Text("$pointerSpeed/20", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonYellow)
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Slider(
+                value = pointerSpeed.toFloat(),
+                onValueChange = { viewModel.setPointerSpeed(it.toInt()) },
+                valueRange = 1f..20f,
+                steps = 18,
+                colors = SliderDefaults.colors(
+                    activeTrackColor = NeonYellow,
+                    inactiveTrackColor = DarkBorder,
+                    thumbColor = NeonYellow
+                ),
+                modifier = Modifier.height(24.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 3. Touch Response Delay
+            Text("Tunda Respon Sentuhan (Touch Response Delay)", fontSize = 10.sp, color = MutedSlate)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(1 to "1 ms (Sangat Cepat)", 2 to "2 ms (Super)", 4 to "4 ms (Stabil)").forEach { (ms, name) ->
+                    val isSelected = touchResponseDelay == ms
+                    Card(
+                        onClick = { viewModel.setTouchResponseDelay(ms) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .border(
+                                width = 1.dp,
+                                color = if (isSelected) NeonGreen else DarkBorder.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(8.dp)
+                            ),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) NeonGreen.copy(alpha = 0.08f) else DarkBackground.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                name,
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) NeonGreen else MutedSlate
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(color = DarkBorder.copy(alpha = 0.1f))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 4. Touch Stabilizer Switch
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Pencegah Sentuhan Palsu (Anti-Ghost Touch)", fontSize = 10.sp, color = PureWhite)
+                    Text("Menstabilkan koordinat pointer beralur halus & mencegah double-touch tak sengaja.", fontSize = 8.sp, color = MutedSlate)
+                }
+                
+                Switch(
+                    checked = touchStabilizer,
+                    onCheckedChange = { viewModel.toggleTouchStabilizer() },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = NeonCyan,
+                        checkedTrackColor = NeonCyan.copy(alpha = 0.3f),
+                        uncheckedThumbColor = MutedSlate,
+                        uncheckedTrackColor = DarkBorder
+                    )
+                )
+            }
+        }
+    }
 }
