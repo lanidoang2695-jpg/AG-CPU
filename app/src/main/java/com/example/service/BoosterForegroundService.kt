@@ -170,9 +170,11 @@ class BoosterForegroundService : Service() {
                 
                 // Set extremely proactive physical carrier keeping-awake durations to force Constantly Active Mode (CAM).
                 val delayMs = when (netMode) {
+                    "MOBILE_EXTREME_FORCE" -> 20L // Force cellular LTE/5G modem to stay in peak active power state (Active DCH Mode)
                     "WIFI_EXTREME_WALL" -> 30L  // Force 100% TX/RX hardware power amplitude to bypass wall obstruction
                     "WIFI_TURBO" -> 80L         // High speed profile (anti-shuttering)
                     "WIFI_FAST" -> 180L         // Standard active pacing
+                    "MOBILE_5G" -> 150L         // Mobile peak carrier connection
                     else -> 400L                // Balanced
                 }
 
@@ -194,18 +196,22 @@ class BoosterForegroundService : Service() {
                     // Instantly warm up transmission trails
                     val socket = DatagramSocket()
                     
-                    // Fetch and bind to active Wi-Fi hardware adapter to bypass routing lookup tables entirely
+                    // Fetch and bind to active hardware adapter to bypass routing lookup tables entirely
                     try {
                         val cm = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
                         val activeNetwork = cm?.activeNetwork
                         if (activeNetwork != null) {
                             val caps = cm.getNetworkCapabilities(activeNetwork)
-                            if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                                activeNetwork.bindSocket(socket)
+                            if (caps != null) {
+                                val isCellM = netMode == "MOBILE_EXTREME_FORCE" || netMode == "MOBILE_5G"
+                                val transport = if (isCellM) NetworkCapabilities.TRANSPORT_CELLULAR else NetworkCapabilities.TRANSPORT_WIFI
+                                if (caps.hasTransport(transport)) {
+                                    activeNetwork.bindSocket(socket)
+                                }
                             }
                         }
                     } catch (e: Exception) {
-                        Log.w("BoosterService", "Direct Wi-Fi socket binding skipped: ${e.message}")
+                        Log.w("BoosterService", "Direct hardware socket binding skipped: ${e.message}")
                     }
                     
                     // Set Type of Service to DSCP EF - Expedited Forwarding / Voice Class (0xB8)
@@ -219,7 +225,13 @@ class BoosterForegroundService : Service() {
                     buf[0] = 0x00.toByte() // STUN Message Type: Binding Indication
                     buf[1] = 0x11.toByte()
                     
-                    if (netMode == "WIFI_EXTREME_WALL") {
+                    if (netMode == "MOBILE_EXTREME_FORCE") {
+                        // Force All Operator cellular keepalive parallel delivery to Cloudflare and Google endpoints
+                        val packet1 = DatagramPacket(buf, buf.size, clDns, 3478)
+                        val packet2 = DatagramPacket(buf, buf.size, gDns, 3478)
+                        socket.send(packet1)
+                        socket.send(packet2)
+                    } else if (netMode == "WIFI_EXTREME_WALL") {
                         // Extreme Walls mode: simultaneous transmission to eliminate gateway lookup table delays completely!
                         val gatewayTarget = gatewayAddr ?: clDns
                         val packet1 = DatagramPacket(buf, buf.size, gatewayTarget, 3478)
@@ -251,8 +263,12 @@ class BoosterForegroundService : Service() {
                             val activeNetwork = cm?.activeNetwork
                             if (activeNetwork != null) {
                                 val caps = cm.getNetworkCapabilities(activeNetwork)
-                                if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                                    activeNetwork.bindSocket(fallbackSocket)
+                                if (caps != null) {
+                                    val isCellM = netMode == "MOBILE_EXTREME_FORCE" || netMode == "MOBILE_5G"
+                                    val transport = if (isCellM) NetworkCapabilities.TRANSPORT_CELLULAR else NetworkCapabilities.TRANSPORT_WIFI
+                                    if (caps.hasTransport(transport)) {
+                                        activeNetwork.bindSocket(fallbackSocket)
+                                    }
                                 }
                             }
                         } catch (e: Exception) {}

@@ -387,6 +387,7 @@ fun GameConfigurationPanel(
             ) {
                 listOf(
                     "AUTO" to "Pelindung Otomatis Latensi",
+                    "MOBILE_EXTREME_FORCE" to "Bypass Sinyal Seluler (Kuota All Operator Tembus Tembok)",
                     "WIFI_EXTREME_WALL" to "Bypass Tembus Tembok Wi-Fi (Super Ekstrim MLBB)",
                     "WIFI_TURBO" to "Wi-Fi Super-Turbo Gaming (Anti-Lag)",
                     "WIFI_FAST" to "Mode Kencang Wi-Fi",
