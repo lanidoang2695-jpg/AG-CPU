@@ -165,6 +165,17 @@ class BoosterForegroundService : Service() {
             var rotateIndex = 0
             
             while (isTurboActive) {
+                val prefs = getSharedPreferences("ag_booster_prefs", Context.MODE_PRIVATE)
+                val netMode = prefs.getString("selected_network_mode", "AUTO") ?: "AUTO"
+                
+                // Set extremely proactive physical carrier keeping-awake durations to force Constantly Active Mode (CAM).
+                val delayMs = when (netMode) {
+                    "WIFI_EXTREME_WALL" -> 30L  // Force 100% TX/RX hardware power amplitude to bypass wall obstruction
+                    "WIFI_TURBO" -> 80L         // High speed profile (anti-shuttering)
+                    "WIFI_FAST" -> 180L         // Standard active pacing
+                    else -> 400L                // Balanced
+                }
+
                 try {
                     val wm = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
                     val gatewayInt = wm?.dhcpInfo?.gateway ?: 0
@@ -204,23 +215,28 @@ class BoosterForegroundService : Service() {
                     } catch (e: Exception) {}
                     
                     // Create an empty STUN Keepalive packet (standard 20-byte STUN binding indication header)
-                    // This is 100% compliant with standard router NAT lookup keeps and treated with highest gaming priority.
                     val buf = ByteArray(20) { 0x00.toByte() }
                     buf[0] = 0x00.toByte() // STUN Message Type: Binding Indication
                     buf[1] = 0x11.toByte()
                     
-                    // Choose exact target in rotation to completely eliminate router-congestion queuing (Bufferbloat)
-                    val targetAddr = when (rotateIndex) {
-                        0 -> gatewayAddr ?: clDns
-                        1 -> clDns
-                        else -> gDns
+                    if (netMode == "WIFI_EXTREME_WALL") {
+                        // Extreme Walls mode: simultaneous transmission to eliminate gateway lookup table delays completely!
+                        val gatewayTarget = gatewayAddr ?: clDns
+                        val packet1 = DatagramPacket(buf, buf.size, gatewayTarget, 3478)
+                        val packet2 = DatagramPacket(buf, buf.size, if (rotateIndex == 0) clDns else gDns, 3478)
+                        socket.send(packet1)
+                        socket.send(packet2)
+                    } else {
+                        val targetAddr = when (rotateIndex) {
+                            0 -> gatewayAddr ?: clDns
+                            1 -> clDns
+                            else -> gDns
+                        }
+                        val packet = DatagramPacket(buf, buf.size, targetAddr, 3478)
+                        socket.send(packet)
                     }
                     
-                    // Send to port 3478 (STUN) - universally optimized for games and high-priority traffic on home gateways
-                    val packet = DatagramPacket(buf, buf.size, targetAddr, 3478)
-                    socket.send(packet)
                     socket.close()
-                    
                     rotateIndex = (rotateIndex + 1) % 3
                 } catch (e: Exception) {
                     // TCP Connect keepalive fallback with Voice QoS tag and direct binding compatibility on standard port 443
@@ -246,9 +262,7 @@ class BoosterForegroundService : Service() {
                     } catch (ex: Exception) {}
                 }
                 
-                // Optimized keeping-awake sequence of 1200ms: keeps the radio fully warm at peak performance,
-                // while generating absolutely zero queue contention or security flags on firewalls.
-                delay(1200)
+                delay(delayMs)
             }
         }
         

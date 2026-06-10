@@ -28,6 +28,10 @@ import androidx.compose.ui.unit.sp
 import com.example.data.GameProfile
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.PerformanceViewModel
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -383,6 +387,7 @@ fun GameConfigurationPanel(
             ) {
                 listOf(
                     "AUTO" to "Pelindung Otomatis Latensi",
+                    "WIFI_EXTREME_WALL" to "Bypass Tembus Tembok Wi-Fi (Super Ekstrim MLBB)",
                     "WIFI_TURBO" to "Wi-Fi Super-Turbo Gaming (Anti-Lag)",
                     "WIFI_FAST" to "Mode Kencang Wi-Fi",
                     "MOBILE_5G" to "Prioritas Koneksi 5G/LTE",
@@ -596,6 +601,13 @@ fun ScreenSensitivityPanel(
     val touchResponseDelay by viewModel.touchResponseDelay.collectAsState()
     val touchStabilizer by viewModel.touchStabilizer.collectAsState()
     val pointerSpeed by viewModel.pointerSpeed.collectAsState()
+    val writeSettingsGranted by viewModel.writeSettingsGranted.collectAsState()
+    val context = LocalContext.current
+
+    // Refresh permission when panel is drawn and in-focus
+    LaunchedEffect(Unit) {
+        viewModel.checkWriteSettingsPermission()
+    }
 
     Card(
         modifier = Modifier
@@ -638,6 +650,70 @@ fun ScreenSensitivityPanel(
                 color = MutedSlate,
                 modifier = Modifier.padding(top = 2.dp)
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Write Settings authorization status card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(
+                        width = 1.dp, 
+                        color = if (writeSettingsGranted) NeonGreen.copy(alpha = 0.3f) else NeonOrange.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .clickable {
+                        if (!writeSettingsGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            try {
+                                val intent = Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                                    data = Uri.parse("package:${context.packageName}")
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                try {
+                                    val intent = Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (ex: Exception) {}
+                            }
+                        }
+                    },
+                colors = CardDefaults.cardColors(
+                    containerColor = if (writeSettingsGranted) NeonGreen.copy(alpha = 0.05f) else NeonOrange.copy(alpha = 0.05f)
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (writeSettingsGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = if (writeSettingsGranted) NeonGreen else NeonOrange,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (writeSettingsGranted) "IZIN OPTIMALISASI HARDWARE DIAKTIFKAN" else "IZIN OPTIMALISASI SISTEM TERBATASI",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (writeSettingsGranted) NeonGreen else NeonOrange
+                        )
+                        Text(
+                            text = if (writeSettingsGranted) 
+                                "Kamera, kernel sentuh nirkabel & penghapus rendering delay berjalan 100% aktif (Maksimal)." 
+                            else 
+                                "Ketuk di sini untuk mengaktifkan izin modifikasi sistem (Write Settings) agar kursor & optimalisasi frame rate aktif sempurna.",
+                            fontSize = 8.sp,
+                            color = MutedSlate
+                        )
+                    }
+                }
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
 
