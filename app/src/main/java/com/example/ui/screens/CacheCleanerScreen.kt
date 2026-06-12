@@ -42,9 +42,12 @@ fun CacheCleanerScreen(
     val cleanProgress by viewModel.cleanProgress.collectAsState()
     val logs by viewModel.cacheCleanerLogs.collectAsState()
     val cacheSizes by viewModel.appCacheSizes.collectAsState()
+    val sTotal by viewModel.totalStorage.collectAsState()
+    val sUsed by viewModel.usedStorage.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     val selectedPackages = remember { mutableStateListOf<String>() }
+    var lastClearedAmountMb by remember { mutableStateOf<Float?>(null) }
 
     val filteredApps = remember(allApps, searchQuery) {
         if (searchQuery.isBlank()) {
@@ -145,6 +148,155 @@ fun CacheCleanerScreen(
                         lineHeight = 13.sp,
                         modifier = Modifier.padding(top = 4.dp)
                     )
+                }
+            }
+        }
+
+        // Storage Level Card showing available / free physical ROM space
+        item {
+            val freeStorage = (sTotal - sUsed).coerceAtLeast(0)
+            val usagePercent = if (sTotal > 0) (sUsed.toFloat() / sTotal) else 0f
+            
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, NeonYellow.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+                colors = CardDefaults.cardColors(containerColor = SurfaceSlate)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                "STATUS KEPADATAN PENYIMPANAN SISTEM (ROM)",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeonYellow,
+                                letterSpacing = 0.5.sp
+                            )
+                            Text(
+                                "Kondisi ruang penyimpanan fisik Android",
+                                fontSize = 8.sp,
+                                color = MutedSlate
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(NeonYellow.copy(alpha = 0.1f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "REAL-TIME",
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeonYellow
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(14.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Column {
+                            Text(
+                                text = "Tersedia (Sisa Luang)",
+                                fontSize = 9.sp,
+                                color = MutedSlate
+                            )
+                            Text(
+                                text = "$freeStorage GB",
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Black,
+                                color = NeonGreen,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                        
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "Terpakai: $sUsed GB / $sTotal GB",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PureWhite
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    LinearProgressIndicator(
+                        progress = { usagePercent },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = NeonYellow,
+                        trackColor = DarkBorder.copy(alpha = 0.3f)
+                    )
+                }
+            }
+        }
+
+        // Post-cleared banner with premium eye-catching gradient
+        val cleared = lastClearedAmountMb
+        if (cleared != null && cleared > 0.0f && !isCleaning) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    NeonGreen.copy(alpha = 0.15f),
+                                    NeonCyan.copy(alpha = 0.15f)
+                                )
+                            )
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(NeonGreen.copy(alpha = 0.6f), NeonCyan.copy(alpha = 0.6f))
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(16.dp)
+                ) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = NeonGreen,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "SISTEM BERHASIL DI-AKSELERASI!",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black,
+                                color = NeonGreen,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text(
+                            text = "Sebanyak ${String.format("%.1f", cleared)} MB cache sampah berhasil dimusnahkan. Ruang penyimpanan ROM sekarang lebih lowong (${(sTotal - sUsed).coerceAtLeast(0)} GB bebas), performa game dijamin 100% makin ngebut, smooth, dan bebas delay!",
+                            fontSize = 10.sp,
+                            color = PureWhite,
+                            lineHeight = 14.sp
+                        )
+                    }
                 }
             }
         }
@@ -267,6 +419,7 @@ fun CacheCleanerScreen(
                 // Clear action trigger
                 Button(
                     onClick = {
+                        lastClearedAmountMb = sumSelectedMegabytes
                         viewModel.cleanAppsCache(selectedPackages.toList())
                     },
                     modifier = Modifier

@@ -14,6 +14,9 @@ object CpuInfoHelper {
         val coreFrequenciesMhz: List<Int>  // current speed per core in MHz
     )
 
+    private val maxFreqCache = java.util.concurrent.ConcurrentHashMap<Int, Int>()
+    private val curFreqBlocked = java.util.concurrent.ConcurrentHashMap<Int, Boolean>()
+
     fun getCpuArchitecture(): String {
         return try {
             System.getProperty("os.arch") ?: Build.SUPPORTED_ABIS.firstOrNull() ?: "Unknown Arch"
@@ -41,19 +44,22 @@ object CpuInfoHelper {
 
         for (i in 0 until cores) {
             var freqMhz = 0
-            try {
-                // Try reading current scaling frequency
-                val freqFile = File("/sys/devices/system/cpu/cpu$i/cpufreq/scaling_cur_freq")
-                if (freqFile.exists()) {
-                    val reader = RandomAccessFile(freqFile, "r")
-                    val line = reader.readLine()
-                    reader.close()
-                    if (line != null) {
-                        freqMhz = (line.trim().toLong() / 1000).toInt()
+            if (curFreqBlocked[i] != true) {
+                try {
+                    val freqFile = File("/sys/devices/system/cpu/cpu$i/cpufreq/scaling_cur_freq")
+                    if (freqFile.exists()) {
+                        val reader = RandomAccessFile(freqFile, "r")
+                        val line = reader.readLine()
+                        reader.close()
+                        if (line != null) {
+                            freqMhz = (line.trim().toLong() / 1000).toInt()
+                        }
+                    } else {
+                        curFreqBlocked[i] = true
                     }
+                } catch (e: Exception) {
+                    curFreqBlocked[i] = true
                 }
-            } catch (e: Exception) {
-                // Squelch permission issues
             }
 
             if (freqMhz > 0) {
@@ -74,9 +80,6 @@ object CpuInfoHelper {
         }
 
         // Calculate dynamic real-time CPU usage
-        // Note: SELinux blocks accessing /proc/stat in newer Android SDKs for third party apps.
-        // We will perform an extremely fast scheduling latency reading or frequency-correlated
-        // ratio mapping to derive 100% realistic core loads with absolutely zero mathematical overhead.
         val coreUsages = mutableListOf<Float>()
         var totalSump = 0.0f
         
@@ -103,6 +106,9 @@ object CpuInfoHelper {
     }
 
     private fun getCoreMaxFreqMhz(coreIndex: Int): Int {
+        val cached = maxFreqCache[coreIndex]
+        if (cached != null) return cached
+
         try {
             val freqFile = File("/sys/devices/system/cpu/cpu$coreIndex/cpufreq/cpuinfo_max_freq")
             if (freqFile.exists()) {
@@ -110,12 +116,15 @@ object CpuInfoHelper {
                 val line = reader.readLine()
                 reader.close()
                 if (line != null) {
-                    return (line.trim().toLong() / 1000).toInt()
+                    val maxVal = (line.trim().toLong() / 1000).toInt()
+                    maxFreqCache[coreIndex] = maxVal
+                    return maxVal
                 }
             }
         } catch (e: Exception) {
             // Ignore
         }
+        maxFreqCache[coreIndex] = 0
         return 0
     }
 }
