@@ -1,3 +1,0 @@
-- name: Check APK
-  run: |
-    find . -name "*.apk"

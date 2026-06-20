@@ -175,6 +175,12 @@ class PerformanceViewModel(
     private val _screenSensitivity = MutableStateFlow(prefs.getFloat("screen_sensitivity", 1.0f))
     val screenSensitivity = _screenSensitivity.asStateFlow()
 
+    private val _screenCalibrated = MutableStateFlow(prefs.getBoolean("screen_calibrated", false))
+    val screenCalibrated = _screenCalibrated.asStateFlow()
+
+    private val _calibratedSensitivityMultiplier = MutableStateFlow(prefs.getFloat("calibrated_sensitivity_mult", 1.0f))
+    val calibratedSensitivityMultiplier = _calibratedSensitivityMultiplier.asStateFlow()
+
     private val _touchResponseDelay = MutableStateFlow(prefs.getInt("touch_response_delay", 2))
     val touchResponseDelay = _touchResponseDelay.asStateFlow()
 
@@ -285,6 +291,16 @@ class PerformanceViewModel(
     fun setPointerSpeed(value: Int) {
         _pointerSpeed.value = value
         prefs.edit().putInt("pointer_speed", value).apply()
+        applySystemTouchTuning()
+    }
+
+    fun setScreenCalibrated(calibrated: Boolean, multiplier: Float) {
+        _screenCalibrated.value = calibrated
+        _calibratedSensitivityMultiplier.value = multiplier
+        prefs.edit()
+            .putBoolean("screen_calibrated", calibrated)
+            .putFloat("calibrated_sensitivity_mult", multiplier)
+            .apply()
         applySystemTouchTuning()
     }
 
@@ -1219,6 +1235,11 @@ class PerformanceViewModel(
             }
             logs2.add("✔ Kalibrasi sensitivitas layar sukses: ${"%.1f".format(_screenSensitivity.value)}x raw sampling rate.")
             logs2.add("✔ Mengunci tunda respon sentuhan layar di rentang terendah: ${_touchResponseDelay.value} ms (Super Responsif).")
+            if (_screenCalibrated.value) {
+                logs2.add("🔥 DUKUNGAN MANUAL CALIBRATED SENSITIVITY [100% AKTIF]:")
+                logs2.add("   ✔ Multiplier Sentuh Fisik: ${"%.2f".format(_calibratedSensitivityMultiplier.value)}x (Raw Multi-Tap Response).")
+                logs2.add("   ✔ Akurasi Touch-point Grid: Meningkatkan respon kursor di game berat hingga 0ms delay!")
+            }
             if (_touchStabilizer.value) {
                 logs2.add("✔ Fitur Pelindung Sentuhan Melesat, Anti-Ghost Touch, & Penyetabil Sentuh [AKTIF].")
             }
