@@ -41,6 +41,32 @@ class BoosterForegroundService : Service() {
 
         const val ACTION_START_TURBO = "com.example.service.ACTION_START_TURBO"
         const val ACTION_STOP_TURBO = "com.example.service.ACTION_STOP_TURBO"
+        const val ACTION_SHOW_FLOATING_OVERLAY = "com.example.service.ACTION_SHOW_FLOATING_OVERLAY"
+        const val ACTION_HIDE_FLOATING_OVERLAY = "com.example.service.ACTION_HIDE_FLOATING_OVERLAY"
+
+        fun showFloatingOverlay(context: Context) {
+            val intent = Intent(context, BoosterForegroundService::class.java).apply {
+                action = ACTION_SHOW_FLOATING_OVERLAY
+            }
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (e: Exception) {
+                try { context.startService(intent) } catch (ex: Exception) {}
+            }
+        }
+
+        fun hideFloatingOverlay(context: Context) {
+            val intent = Intent(context, BoosterForegroundService::class.java).apply {
+                action = ACTION_HIDE_FLOATING_OVERLAY
+            }
+            try {
+                context.startService(intent)
+            } catch (e: Exception) {}
+        }
 
         fun startService(context: Context) {
             val intent = Intent(context, BoosterForegroundService::class.java)
@@ -81,6 +107,18 @@ class BoosterForegroundService : Service() {
             startWifiTurboBoost()
         } else if (action == ACTION_STOP_TURBO) {
             stopWifiTurboBoost()
+        } else if (action == ACTION_SHOW_FLOATING_OVERLAY) {
+            com.example.util.FloatingOverlayManager.showFloatingOverlay(this)
+        } else if (action == ACTION_HIDE_FLOATING_OVERLAY) {
+            com.example.util.FloatingOverlayManager.hideAll(this)
+        }
+
+        // Auto restore floating window if enabled in prefs
+        val prefs = getSharedPreferences("ag_booster_prefs", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("floating_overlay_enabled", false) && !com.example.util.FloatingOverlayManager.isOverlayActive()) {
+            if (com.example.util.FloatingOverlayManager.canDrawOverlays(this)) {
+                com.example.util.FloatingOverlayManager.showFloatingOverlay(this)
+            }
         }
 
         val title = if (isTurboActive) "AG Booster [TURBO WI-FI AKTIF]" else "AG Booster Active Engine"
@@ -334,6 +372,7 @@ class BoosterForegroundService : Service() {
     }
 
     override fun onDestroy() {
+        com.example.util.FloatingOverlayManager.hideAll(this)
         stopWifiTurboBoost()
         serviceJob.cancel()
         super.onDestroy()

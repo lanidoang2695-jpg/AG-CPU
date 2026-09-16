@@ -6,8 +6,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -56,10 +58,10 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class NavigationTab(val title: String, val icon: ImageVector, val tag: String) {
-    DASHBOARD("SPEK DINAMIS", Icons.Default.Home, "tab_dashboard"),
-    SYSTEM("INFO DETAIL", Icons.Default.Info, "tab_system"),
+    DASHBOARD("DASHBOARD", Icons.Default.Home, "tab_dashboard"),
+    SYSTEM("HARDWARE", Icons.Default.Info, "tab_system"),
     NETWORK("JARINGAN", Icons.Default.Settings, "tab_network"),
-    BOOSTER("MESIN GAME", Icons.Default.PlayArrow, "tab_booster"),
+    BOOSTER("GAME BOOST", Icons.Default.PlayArrow, "tab_booster"),
     CACHE("BERSIH CACHE", Icons.Default.Delete, "tab_cache")
 }
 
@@ -90,41 +92,53 @@ fun MainAppLayout(viewModel: PerformanceViewModel) {
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
-                                .background(NeonCyan.copy(alpha = 0.15f), RoundedCornerShape(6.dp)),
+                                .size(34.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(NeonCyan.copy(alpha = 0.15f))
+                                .border(1.dp, NeonCyan.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
                             contentAlignment = androidx.compose.ui.Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Info,
+                                imageVector = Icons.Default.PlayArrow,
                                 contentDescription = null,
                                 tint = NeonCyan,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "AG CPU TOOLS",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Black,
-                            color = PureWhite,
-                            letterSpacing = 1.5.sp
-                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "AG BOOSTER PRO",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Black,
+                                color = PureWhite,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = "Ultra Gaming & Network Engine",
+                                fontSize = 9.sp,
+                                color = MutedSlate
+                            )
+                        }
                     }
 
+                    val isTurbo by viewModel.wifiTurboSelected.collectAsState()
                     Box(
                         modifier = Modifier
-                            .background(NeonGreen.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isTurbo) NeonGreen.copy(alpha = 0.15f) else SurfaceSlate)
+                            .border(1.dp, if (isTurbo) NeonGreen.copy(alpha = 0.4f) else DarkBorder, RoundedCornerShape(6.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "MESIN AKTIF",
+                            text = if (isTurbo) "TURBO LOCKED" else "ONLINE",
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
-                            color = NeonGreen
+                            color = if (isTurbo) NeonGreen else MutedSlate
                         )
                     }
                 }
-                Divider(color = DarkBorder.copy(alpha = 0.3f))
+                Divider(color = DarkBorder.copy(alpha = 0.5f))
             }
         },
         bottomBar = {

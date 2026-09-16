@@ -156,6 +156,14 @@ class PerformanceViewModel(
     private val _sidebarEnabled = MutableStateFlow(prefs.getBoolean("sidebar_enabled", true))
     val sidebarEnabled = _sidebarEnabled.asStateFlow()
 
+    private val _dnsOptimizationMode = MutableStateFlow(prefs.getString("dns_mode", "CLOUDFLARE_WARP") ?: "CLOUDFLARE_WARP")
+    val dnsOptimizationMode = _dnsOptimizationMode.asStateFlow()
+
+    fun setDnsOptimizationMode(mode: String) {
+        _dnsOptimizationMode.value = mode
+        prefs.edit().putString("dns_mode", mode).apply()
+    }
+
     private val _globalGameMode = MutableStateFlow(prefs.getString("global_game_mode", "BALANCED") ?: "BALANCED")
     val globalGameMode = _globalGameMode.asStateFlow()
 
@@ -205,6 +213,46 @@ class PerformanceViewModel(
 
     private val _floatingWindows = MutableStateFlow<List<FloatingWindow>>(emptyList())
     val floatingWindows = _floatingWindows.asStateFlow()
+
+    private val _floatingOverlayEnabled = MutableStateFlow(prefs.getBoolean("floating_overlay_enabled", true))
+    val floatingOverlayEnabled = _floatingOverlayEnabled.asStateFlow()
+
+    fun toggleFloatingOverlay(enabled: Boolean) {
+        _floatingOverlayEnabled.value = enabled
+        prefs.edit().putBoolean("floating_overlay_enabled", enabled).apply()
+        if (enabled) {
+            com.example.service.BoosterForegroundService.showFloatingOverlay(context)
+        } else {
+            com.example.service.BoosterForegroundService.hideFloatingOverlay(context)
+        }
+    }
+
+    fun boostNetworkOverpower() {
+        _wifiTurboSelected.value = true
+        _lockNetworkSelected.value = true
+        _lowMsOptimizerActive.value = true
+        _networkBandLockActive.value = true
+        _networkStabilizerActive.value = true
+        prefs.edit().putBoolean("wifi_turbo", true).apply()
+        prefs.edit().putBoolean("lock_network", true).apply()
+
+        com.example.service.BoosterForegroundService.startService(context)
+        val intent = Intent(context, com.example.service.BoosterForegroundService::class.java).apply {
+            action = com.example.service.BoosterForegroundService.ACTION_START_TURBO
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        } catch (e: Exception) {}
+
+        applyWifiLatencyLock()
+        applyNetworkBandLock()
+        startNetworkStabilizerLoop()
+        startWifiTurboHeartbeat()
+    }
 
     fun setSidebarEnabled(enabled: Boolean) {
         _sidebarEnabled.value = enabled
@@ -1267,6 +1315,15 @@ class PerformanceViewModel(
             try {
                 repository.updateLaunchTime(targetGame.packageName, System.currentTimeMillis())
                 
+                // Trigger floating overlay so player can access WhatsApp, Google, Crosshair, & Ram flush in-game!
+                if (_floatingOverlayEnabled.value || com.example.util.FloatingOverlayManager.canDrawOverlays(context)) {
+                    com.example.service.BoosterForegroundService.showFloatingOverlay(context)
+                    logs4.add("✔ Jendela Mengambang Asisten Game siap di dalam game!")
+                }
+
+                // Ensure Super Overpower Network Lock service is engaged
+                com.example.service.BoosterForegroundService.startService(context)
+
                 // Execute launch intent redirect
                 val pm = context.packageManager
                 val intent = pm.getLaunchIntentForPackage(targetGame.packageName)

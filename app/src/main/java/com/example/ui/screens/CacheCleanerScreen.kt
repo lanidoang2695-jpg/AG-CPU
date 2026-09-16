@@ -10,16 +10,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
@@ -31,7 +30,6 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.PerformanceViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CacheCleanerScreen(
     viewModel: PerformanceViewModel,
@@ -60,14 +58,12 @@ fun CacheCleanerScreen(
         }
     }
 
-    // Auto select apps with caches > 0 on start or update
     LaunchedEffect(allApps) {
         if (selectedPackages.isEmpty() && allApps.isNotEmpty()) {
             selectedPackages.addAll(allApps.map { it.packageName })
         }
     }
 
-    // Calculate sum sizes of selected apps
     val sumSelectedMegabytes = remember(selectedPackages, cacheSizes) {
         var totalBytes = 0L
         selectedPackages.forEach { pkg ->
@@ -76,23 +72,26 @@ fun CacheCleanerScreen(
         totalBytes / (1024f * 1024f)
     }
 
+    val freeStorage = (sTotal - sUsed).coerceAtLeast(0)
+    val usagePercent = if (sTotal > 0) (sUsed.toFloat() / sTotal) else 0f
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(DarkBackground)
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)
+        contentPadding = PaddingValues(top = 12.dp, bottom = 32.dp)
     ) {
-        // High level dashboard header card
+        // --- 1. PHYSICAL STORAGE USAGE CARD (TERPAKAi vs TERSEDIA & DIPERLUAS) ---
         item {
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, NeonCyan.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
-                colors = CardDefaults.cardColors(containerColor = SurfaceSlate)
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = CardSlate),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(18.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -100,106 +99,39 @@ fun CacheCleanerScreen(
                     ) {
                         Column {
                             Text(
-                                "PEMBERSIHAN MEMORI PINTAR",
+                                text = "KAPASITAS PENYIMPANAN SISTEM (ROM)",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = NeonCyan,
                                 letterSpacing = 1.sp
                             )
                             Text(
-                                "Bersihkan cache sampah, shader & berkas sementara",
-                                fontSize = 8.sp,
+                                text = "Kondisi ruang memori penyimpanan internal Android",
+                                fontSize = 9.sp,
                                 color = MutedSlate
                             )
                         }
+
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(NeonCyan.copy(alpha = 0.1f)),
-                            contentAlignment = Alignment.Center
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(SurfaceSlate)
+                                .border(1.dp, DarkBorder, RoundedCornerShape(6.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = null,
-                                tint = NeonCyan,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = "Kapasitas Potensi Pembersihan",
-                        fontSize = 10.sp,
-                        color = MutedSlate
-                    )
-                    Text(
-                        text = "${String.format("%.1f", sumSelectedMegabytes)} MB",
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Black,
-                        color = if (sumSelectedMegabytes > 0) NeonCyan else NeonGreen,
-                        fontFamily = FontFamily.Monospace
-                    )
-                    Text(
-                        text = "Menghapus cache membersihkan file shader usang, membebaskan memori RAM/Dalvik Heap dan mencegah lag patah-patah.",
-                        fontSize = 9.sp,
-                        color = MutedSlate,
-                        lineHeight = 13.sp,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
-        }
-
-        // Storage Level Card showing available / free physical ROM space
-        item {
-            val freeStorage = (sTotal - sUsed).coerceAtLeast(0)
-            val usagePercent = if (sTotal > 0) (sUsed.toFloat() / sTotal) else 0f
-            
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, NeonYellow.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
-                colors = CardDefaults.cardColors(containerColor = SurfaceSlate)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
                             Text(
-                                "STATUS KEPADATAN PENYIMPANAN SISTEM (ROM)",
+                                text = "TOTAL: $sTotal GB",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = NeonYellow,
-                                letterSpacing = 0.5.sp
-                            )
-                            Text(
-                                "Kondisi ruang penyimpanan fisik Android",
-                                fontSize = 8.sp,
-                                color = MutedSlate
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(NeonYellow.copy(alpha = 0.1f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "REAL-TIME",
-                                fontSize = 8.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NeonYellow
+                                color = PureWhite,
+                                fontFamily = FontFamily.Monospace
                             )
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(14.dp))
-                    
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // Real-time Storage Details: Tersedia vs Terpakai
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -207,173 +139,107 @@ fun CacheCleanerScreen(
                     ) {
                         Column {
                             Text(
-                                text = "Tersedia (Sisa Luang)",
-                                fontSize = 9.sp,
+                                text = "Tersedia (Ruang Luang)",
+                                fontSize = 10.sp,
                                 color = MutedSlate
                             )
-                            Text(
-                                text = "$freeStorage GB",
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Black,
-                                color = NeonGreen,
-                                fontFamily = FontFamily.Monospace
-                            )
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(
+                                    text = "$freeStorage",
+                                    fontSize = 34.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = NeonGreen,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                                Text(
+                                    text = " GB",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MutedSlate,
+                                    modifier = Modifier.padding(bottom = 5.dp)
+                                )
+                            }
                         }
-                        
+
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = "Terpakai: $sUsed GB / $sTotal GB",
+                                text = "Terpakai",
                                 fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PureWhite
+                                color = MutedSlate
                             )
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(
+                                    text = "$sUsed",
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PureWhite,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                                Text(
+                                    text = " / $sTotal GB",
+                                    fontSize = 12.sp,
+                                    color = MutedSlate,
+                                    modifier = Modifier.padding(bottom = 3.dp)
+                                )
+                            }
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
                     LinearProgressIndicator(
                         progress = { usagePercent },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = NeonYellow,
-                        trackColor = DarkBorder.copy(alpha = 0.3f)
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        color = if (usagePercent > 0.85f) NeonOrange else NeonCyan,
+                        trackColor = SurfaceSlate
                     )
-                }
-            }
-        }
 
-        // Post-cleared banner with premium eye-catching gradient
-        val cleared = lastClearedAmountMb
-        if (cleared != null && cleared > 0.0f && !isCleaning) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(
-                                    NeonGreen.copy(alpha = 0.15f),
-                                    NeonCyan.copy(alpha = 0.15f)
-                                )
-                            )
-                        )
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(NeonGreen.copy(alpha = 0.6f), NeonCyan.copy(alpha = 0.6f))
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = NeonGreen,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "SISTEM BERHASIL DI-AKSELERASI!",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Black,
-                                color = NeonGreen,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Text(
-                            text = "Sebanyak ${String.format("%.1f", cleared)} MB cache sampah berhasil dimusnahkan. Ruang penyimpanan ROM sekarang lebih lowong (${(sTotal - sUsed).coerceAtLeast(0)} GB bebas), performa game dijamin 100% makin ngebut, smooth, dan bebas delay!",
-                            fontSize = 10.sp,
-                            color = PureWhite,
-                            lineHeight = 14.sp
-                        )
-                    }
-                }
-            }
-        }
+                    Spacer(modifier = Modifier.height(14.dp))
 
-        // Processing Console if isCleaning is active
-        if (isCleaning || logs.isNotEmpty()) {
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(
-                            width = 1.dp,
-                            color = if (isCleaning) NeonCyan.copy(alpha = 0.3f) else DarkBorder.copy(alpha = 0.4f),
-                            shape = RoundedCornerShape(12.dp)
-                        ),
-                    colors = CardDefaults.cardColors(containerColor = DarkBackground.copy(alpha = 0.8f))
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                    // Expansion Potential & Cleared Status
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(SurfaceSlate)
+                            .padding(12.dp)
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "KONSOL PROSES PEMBERSIHAN",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NeonCyan,
-                                letterSpacing = 0.5.sp
-                            )
-                            if (isCleaning) {
+                            Column {
                                 Text(
-                                    text = "${(cleanProgress * 100).toInt()}%",
+                                    text = "Potensi Ruang Yang Diperluas:",
                                     fontSize = 10.sp,
+                                    color = MutedSlate
+                                )
+                                Text(
+                                    text = "+${String.format("%.1f", sumSelectedMegabytes)} MB",
+                                    fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = NeonCyan,
+                                    color = if (sumSelectedMegabytes > 0) NeonGreen else MutedSlate,
                                     fontFamily = FontFamily.Monospace
                                 )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = NeonGreen,
-                                    modifier = Modifier.size(14.dp)
-                                )
                             }
-                        }
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        LinearProgressIndicator(
-                            progress = { cleanProgress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(4.dp)
-                                .clip(RoundedCornerShape(2.dp)),
-                            color = NeonCyan,
-                            trackColor = DarkBorder.copy(alpha = 0.3f)
-                        )
 
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 140.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Color.Black.copy(alpha = 0.5f))
-                                .padding(8.dp)
-                        ) {
-                            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                items(logs.reversed()) { logLine ->
+                            val cleared = lastClearedAmountMb
+                            if (cleared != null && cleared > 0.0f && !isCleaning) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(NeonGreen.copy(alpha = 0.15f))
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
                                     Text(
-                                        text = logLine,
-                                        fontSize = 8.sp,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = if (logLine.startsWith("✔") || logLine.startsWith("✨")) NeonGreen else if (logLine.startsWith("🚀")) NeonCyan else PureWhite
+                                        text = "BERHASIL DIPERLUAS: +${String.format("%.1f", cleared)} MB",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = NeonGreen
                                     )
                                 }
                             }
@@ -383,192 +249,220 @@ fun CacheCleanerScreen(
             }
         }
 
-        // Action controls
+        // --- 2. CLEAN ACTION BUTTON & PROGRESS ---
         item {
-            Row(
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = CardSlate),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
             ) {
-                // Select All toggle button
-                Button(
-                    onClick = {
-                        if (selectedPackages.size == allApps.size) {
-                            selectedPackages.clear()
-                        } else {
-                            selectedPackages.clear()
-                            selectedPackages.addAll(allApps.map { it.packageName })
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = SurfaceSlate,
-                        contentColor = PureWhite
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(12.dp)
-                ) {
-                    Text(
-                        text = if (selectedPackages.size == allApps.size) "BATALKAN SEMUA" else "PILIH SEMUA",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp
-                    )
-                }
-
-                // Clear action trigger
-                Button(
-                    onClick = {
-                        lastClearedAmountMb = sumSelectedMegabytes
-                        viewModel.cleanAppsCache(selectedPackages.toList())
-                    },
-                    modifier = Modifier
-                        .weight(1.3f)
-                        .testTag("action_clean_cache_button"),
-                    enabled = selectedPackages.isNotEmpty() && !isCleaning,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = NeonCyan,
-                        contentColor = DarkBackground,
-                        disabledContainerColor = SurfaceSlate.copy(alpha = 0.4f),
-                        disabledContentColor = MutedSlate
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(12.dp)
-                ) {
+                Column(modifier = Modifier.padding(18.dp)) {
                     Row(
-                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "MULAI PEMBERSIHAN",
-                            fontSize = 10.sp,
+                            text = "${selectedPackages.size} Aplikasi Dipilih",
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
+                            color = PureWhite
+                        )
+
+                        TextButton(
+                            onClick = {
+                                if (selectedPackages.size == allApps.size) {
+                                    selectedPackages.clear()
+                                } else {
+                                    selectedPackages.clear()
+                                    selectedPackages.addAll(allApps.map { it.packageName })
+                                }
+                            }
+                        ) {
+                            Text(
+                                text = if (selectedPackages.size == allApps.size) "Batal Pilih" else "Pilih Semua",
+                                fontSize = 11.sp,
+                                color = NeonCyan
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = {
+                            if (selectedPackages.isNotEmpty() && !isCleaning) {
+                                lastClearedAmountMb = sumSelectedMegabytes
+                                viewModel.cleanAppsCache(selectedPackages.toList())
+                            }
+                        },
+                        enabled = selectedPackages.isNotEmpty() && !isCleaning,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("button_clean_cache"),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NeonCyan,
+                            disabledContainerColor = SurfaceSlate
+                        )
+                    ) {
+                        if (isCleaning) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = DarkBackground,
+                                strokeWidth = 2.5.dp
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "MEMBERSIHKAN CACHE (${(cleanProgress * 100).toInt()}%)...",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DarkBackground
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = DarkBackground,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "BERSIHKAN CACHE & PERLUAS PENYIMPANAN",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DarkBackground
+                            )
+                        }
+                    }
+
+                    if (isCleaning) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        LinearProgressIndicator(
+                            progress = { cleanProgress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp)),
+                            color = NeonGreen,
+                            trackColor = SurfaceSlate
                         )
                     }
                 }
             }
         }
 
-        // Package filtering search
+        // --- 3. SEARCH & APP LIST ---
         item {
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Cari nama aplikasi...", fontSize = 10.sp, color = MutedSlate) },
+                placeholder = { Text("Cari aplikasi untuk dibersihkan...", fontSize = 12.sp, color = MutedSlate) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = MutedSlate,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
-                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = PureWhite),
-                singleLine = true,
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = MutedSlate, modifier = Modifier.size(16.dp))
-                },
+                    .height(52.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = PureWhite,
-                    unfocusedTextColor = PureWhite,
+                    focusedContainerColor = CardSlate,
+                    unfocusedContainerColor = CardSlate,
                     focusedBorderColor = NeonCyan,
                     unfocusedBorderColor = DarkBorder,
-                    focusedContainerColor = SurfaceSlate.copy(alpha = 0.5f),
-                    unfocusedContainerColor = SurfaceSlate.copy(alpha = 0.3f)
+                    focusedTextColor = PureWhite,
+                    unfocusedTextColor = PureWhite
                 ),
-                shape = RoundedCornerShape(8.dp)
+                singleLine = true
             )
         }
 
-        // Applications list showing checkable items
-        if (filteredApps.isEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Tidak ada aplikasi cocok dengan filter.", color = MutedSlate, fontSize = 11.sp)
-                }
-            }
-        } else {
-            items(filteredApps) { app ->
-                val isSelected = selectedPackages.contains(app.packageName)
-                val appBytes = cacheSizes[app.packageName] ?: 0L
-                val sizeOnMb = String.format("%.2f", appBytes / (1024f * 1024f))
+        items(filteredApps, key = { it.packageName }) { app ->
+            val isSelected = selectedPackages.contains(app.packageName)
+            val sizeBytes = cacheSizes[app.packageName] ?: 0L
+            val sizeMb = sizeBytes / (1024f * 1024f)
 
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable {
+                        if (isSelected) {
+                            selectedPackages.remove(app.packageName)
+                        } else {
+                            selectedPackages.add(app.packageName)
+                        }
+                    },
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = CardSlate),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (isSelected) NeonCyan.copy(alpha = 0.4f) else DarkBorder
+                )
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (isSelected) NeonCyan.copy(alpha = 0.05f) else SurfaceSlate.copy(alpha = 0.6f))
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) NeonCyan.copy(alpha = 0.25f) else DarkBorder.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .clickable {
-                            if (isSelected) {
-                                selectedPackages.remove(app.packageName)
-                            } else {
-                                selectedPackages.add(app.packageName)
-                            }
-                        }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isSelected) NeonCyan else SurfaceSlate)
+                            .border(1.dp, if (isSelected) NeonCyan else DarkBorder, RoundedCornerShape(6.dp)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Checkbox(
-                            checked = isSelected,
-                            onCheckedChange = { checked ->
-                                if (checked == true) {
-                                    if (!selectedPackages.contains(app.packageName)) selectedPackages.add(app.packageName)
-                                } else {
-                                    selectedPackages.remove(app.packageName)
-                                }
-                            },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = NeonCyan,
-                                uncheckedColor = MutedSlate,
-                                checkmarkColor = DarkBackground
-                            ),
-                            modifier = Modifier.testTag("cache_cleanup_checkbox_${app.packageName}").size(36.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(
-                                text = app.appName,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PureWhite,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = app.packageName,
-                                fontSize = 8.sp,
-                                color = MutedSlate,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = DarkBackground,
+                                modifier = Modifier.size(14.dp)
                             )
                         }
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(if (appBytes > 0) NeonCyan.copy(alpha = 0.1f) else NeonGreen.copy(alpha = 0.1f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (appBytes > 0) "$sizeOnMb MB" else "BERSIH 0.0 MB",
-                            fontSize = 8.sp,
+                            text = app.appName,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (appBytes > 0) NeonCyan else NeonGreen,
+                            color = PureWhite,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = app.packageName,
+                            fontSize = 9.sp,
+                            color = MutedSlate,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = if (sizeMb > 0) "${String.format("%.1f", sizeMb)} MB" else "Bersih",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (sizeMb > 0) NeonGreen else MutedSlate,
                             fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            text = "Cache sampah",
+                            fontSize = 8.sp,
+                            color = MutedSlate
                         )
                     }
                 }

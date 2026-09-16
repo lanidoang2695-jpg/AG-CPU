@@ -148,6 +148,140 @@ fun GamingBoosterScreen(
                 ScreenSensitivityPanel(viewModel = viewModel)
             }
 
+            // In-Game Floating Assistant & Multi-Window Controller Card
+            item {
+                val context = LocalContext.current
+                val floatingOverlayEnabled by viewModel.floatingOverlayEnabled.collectAsState()
+                val hasOverlayPermission = remember { com.example.util.FloatingOverlayManager.canDrawOverlays(context) }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp)),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardSlate),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (floatingOverlayEnabled) NeonCyan.copy(alpha = 0.5f) else DarkBorder)
+                ) {
+                    Column(modifier = Modifier.padding(18.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(if (floatingOverlayEnabled) NeonCyan.copy(alpha = 0.15f) else SurfaceSlate),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.FavoriteBorder,
+                                        contentDescription = null,
+                                        tint = if (floatingOverlayEnabled) NeonCyan else MutedSlate,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column {
+                                    Text(
+                                        text = "JENDELA MENGAMBANG GAME",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (floatingOverlayEnabled) NeonCyan else PureWhite,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                    Text(
+                                        text = "Buka WhatsApp, Google, Crosshair & RAM cleaner saat di game",
+                                        fontSize = 9.sp,
+                                        color = MutedSlate
+                                    )
+                                }
+                            }
+
+                            Switch(
+                                checked = floatingOverlayEnabled,
+                                onCheckedChange = { enabled ->
+                                    if (enabled && !hasOverlayPermission) {
+                                        val intent = Intent(
+                                            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                            Uri.parse("package:${context.packageName}")
+                                        ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                                        try { context.startActivity(intent) } catch (e: Exception) {}
+                                    }
+                                    viewModel.toggleFloatingOverlay(enabled)
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = NeonCyan,
+                                    checkedTrackColor = NeonCyan.copy(alpha = 0.35f),
+                                    uncheckedThumbColor = MutedSlate,
+                                    uncheckedTrackColor = SurfaceSlate
+                                )
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        if (!hasOverlayPermission) {
+                            Button(
+                                onClick = {
+                                    val intent = Intent(
+                                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        Uri.parse("package:${context.packageName}")
+                                    ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                                    try { context.startActivity(intent) } catch (e: Exception) {}
+                                },
+                                modifier = Modifier.fillMaxWidth().height(42.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = NeonOrange)
+                            ) {
+                                Text(
+                                    text = "IZINKAN TAMPIL DI ATAS APLIKASI LAIN",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DarkBackground
+                                )
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        com.example.util.FloatingOverlayManager.showFloatingOverlay(context)
+                                    },
+                                    modifier = Modifier.weight(1f).height(42.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = NeonCyan),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f))
+                                ) {
+                                    Text("BUKA / UJI FLOATING", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        com.example.util.FloatingOverlayManager.toggleCrosshair(context)
+                                    },
+                                    modifier = Modifier.weight(1f).height(42.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = NeonGreen),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen.copy(alpha = 0.5f))
+                                ) {
+                                    Text("CROSSHAIR AIM", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Big Glowing START BOOST button
             item {
                 Spacer(modifier = Modifier.height(8.dp))
