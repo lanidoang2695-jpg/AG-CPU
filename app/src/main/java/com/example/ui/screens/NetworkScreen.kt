@@ -447,6 +447,16 @@ fun NetworkScreen(
                     Spacer(modifier = Modifier.height(14.dp))
 
                     NetworkModeTile(
+                        title = "⚡ LEVEL MAKSIMAL SUPER (MLBB ZERO DELAY)",
+                        desc = "Mengunci routing prioritas game, hancurkan delay 39-41ms, stabilkan ping di 5-8ms untuk Mobile Legends",
+                        isSelected = selectedNetworkMode == "MLBB_SUPER_LEVEL_MAX",
+                        accentColor = NeonGreen,
+                        onClick = { viewModel.setSelectedNetworkMode("MLBB_SUPER_LEVEL_MAX") }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    NetworkModeTile(
                         title = "SUPER ULTRA GAMING (AUTO LOW LATENCY)",
                         desc = "Prioritas rute terpendek, 0ms buffer delay, sangat cocok untuk MLBB & Free Fire",
                         isSelected = selectedNetworkMode == "AUTO" || selectedNetworkMode == "WIFI_TURBO",

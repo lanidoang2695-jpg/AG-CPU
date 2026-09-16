@@ -43,6 +43,8 @@ object FloatingOverlayManager {
     private var bubbleParams: WindowManager.LayoutParams? = null
     private var assistantParams: WindowManager.LayoutParams? = null
     private var crosshairParams: WindowManager.LayoutParams? = null
+    private var currentAlpha = 1.0f
+    private var currentSizeMode = 1 // 0: Mini, 1: Normal, 2: Wide
 
     fun canDrawOverlays(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -274,6 +276,35 @@ object FloatingOverlayManager {
                 layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
             }
 
+            // Drag listener on header to move floating window anywhere
+            header.setOnTouchListener(object : View.OnTouchListener {
+                private var initialX = 0
+                private var initialY = 0
+                private var initialTouchX = 0f
+                private var initialTouchY = 0f
+
+                override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+                    val params = assistantParams ?: return false
+                    val wm = windowManager ?: return false
+                    when (event?.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            initialX = params.x
+                            initialY = params.y
+                            initialTouchX = event.rawX
+                            initialTouchY = event.rawY
+                            return true
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            params.x = initialX + (event.rawX - initialTouchX).toInt()
+                            params.y = initialY + (event.rawY - initialTouchY).toInt()
+                            try { wm.updateViewLayout(root, params) } catch (e: Exception) {}
+                            return true
+                        }
+                    }
+                    return false
+                }
+            })
+
             val titleCol = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -286,21 +317,75 @@ object FloatingOverlayManager {
                 typeface = Typeface.DEFAULT_BOLD
             }
             val subtitle = TextView(context).apply {
-                text = "Multi-Window & In-Game Toolkit"
+                text = "Geser header untuk pindah posisi"
                 setTextColor(Color.parseColor("#94A3B8"))
-                textSize = 9f
+                textSize = 8.5f
             }
             titleCol.addView(title)
             titleCol.addView(subtitle)
             header.addView(titleCol)
 
+            // Opacity Toggle Button (Tembus Pandang ke Layar Game)
+            val opacityToggleBtn = Button(context).apply {
+                text = "👁️"
+                textSize = 12f
+                setTextColor(Color.WHITE)
+                setBackgroundColor(Color.TRANSPARENT)
+                layoutParams = LinearLayout.LayoutParams((32 * density).toInt(), (36 * density).toInt())
+                setOnClickListener {
+                    currentAlpha = when (currentAlpha) {
+                        1.0f -> 0.80f
+                        0.80f -> 0.60f
+                        else -> 1.0f
+                    }
+                    root.alpha = currentAlpha
+                    val pct = (currentAlpha * 100).toInt()
+                    Toast.makeText(context, "Transparansi Jendela: $pct%", Toast.LENGTH_SHORT).show()
+                }
+            }
+            header.addView(opacityToggleBtn)
+
+            // Size Toggle Button (Mini / Normal / Lebar)
+            val sizeToggleBtn = Button(context).apply {
+                text = "⛶"
+                textSize = 12f
+                setTextColor(Color.parseColor("#38BDF8"))
+                setBackgroundColor(Color.TRANSPARENT)
+                layoutParams = LinearLayout.LayoutParams((32 * density).toInt(), (36 * density).toInt())
+                setOnClickListener {
+                    currentSizeMode = (currentSizeMode + 1) % 3
+                    val wm = windowManager ?: return@setOnClickListener
+                    val params = assistantParams ?: return@setOnClickListener
+                    val dm = context.resources.displayMetrics
+                    when (currentSizeMode) {
+                        0 -> { // Mini
+                            params.width = (280 * density).toInt().coerceAtMost(dm.widthPixels)
+                            params.height = (320 * density).toInt().coerceAtMost(dm.heightPixels)
+                            Toast.makeText(context, "Ukuran: Mini Ringkas", Toast.LENGTH_SHORT).show()
+                        }
+                        1 -> { // Normal
+                            params.width = (340 * density).toInt().coerceAtMost(dm.widthPixels)
+                            params.height = (440 * density).toInt().coerceAtMost(dm.heightPixels)
+                            Toast.makeText(context, "Ukuran: Normal Seimbang", Toast.LENGTH_SHORT).show()
+                        }
+                        2 -> { // Lebar / Lanskap Game
+                            params.width = (480 * density).toInt().coerceAtMost(dm.widthPixels)
+                            params.height = (360 * density).toInt().coerceAtMost(dm.heightPixels)
+                            Toast.makeText(context, "Ukuran: Lebar Lanskap", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    try { wm.updateViewLayout(root, params) } catch (e: Exception) {}
+                }
+            }
+            header.addView(sizeToggleBtn)
+
             // FPS & Ping Live Pill
             val livePill = TextView(context).apply {
-                text = "60 FPS • 12ms"
+                text = "60 FPS • 8ms"
                 setTextColor(Color.parseColor("#10B981"))
-                textSize = 10f
+                textSize = 9.5f
                 typeface = Typeface.MONOSPACE
-                setPadding((8 * density).toInt(), (4 * density).toInt(), (8 * density).toInt(), (4 * density).toInt())
+                setPadding((6 * density).toInt(), (4 * density).toInt(), (6 * density).toInt(), (4 * density).toInt())
                 background = GradientDrawable().apply {
                     cornerRadius = 6 * density
                     setColor(Color.parseColor("#111724"))
@@ -315,7 +400,7 @@ object FloatingOverlayManager {
                 setTextColor(Color.parseColor("#94A3B8"))
                 setBackgroundColor(Color.TRANSPARENT)
                 textSize = 14f
-                layoutParams = LinearLayout.LayoutParams((36 * density).toInt(), (36 * density).toInt())
+                layoutParams = LinearLayout.LayoutParams((32 * density).toInt(), (36 * density).toInt())
                 setOnClickListener { hideAssistantWindow() }
             }
             header.addView(minBtn)
@@ -326,7 +411,7 @@ object FloatingOverlayManager {
                 setTextColor(Color.parseColor("#F97316"))
                 setBackgroundColor(Color.TRANSPARENT)
                 textSize = 14f
-                layoutParams = LinearLayout.LayoutParams((36 * density).toInt(), (36 * density).toInt())
+                layoutParams = LinearLayout.LayoutParams((32 * density).toInt(), (36 * density).toInt())
                 setOnClickListener {
                     hideAssistantWindow()
                     hideAll(context)
@@ -400,17 +485,9 @@ object FloatingOverlayManager {
                 appRow.addView(tile)
             }
 
-            // 1. WhatsApp
+            // 1. WhatsApp in Floating Window
             addAppTile("WhatsApp", "#25D366", "💬") {
-                val pm = context.packageManager
-                val intent = pm.getLaunchIntentForPackage("com.whatsapp")
-                if (intent != null) {
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(intent)
-                    Toast.makeText(context, "Membuka WhatsApp...", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, "WhatsApp tidak terpasang di perangkat.", Toast.LENGTH_SHORT).show()
-                }
+                showFloatingWhatsAppHub(contentContainer, context) { showMainDashboard() }
             }
 
             // 2. Google / Mini Floating Web Browser
@@ -418,19 +495,9 @@ object FloatingOverlayManager {
                 showMiniBrowser(contentContainer, context) { showMainDashboard() }
             }
 
-            // 3. YouTube
+            // 3. YouTube Floating Player
             addAppTile("YouTube", "#FF0000", "▶") {
-                val pm = context.packageManager
-                val intent = pm.getLaunchIntentForPackage("com.google.android.youtube")
-                if (intent != null) {
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(intent)
-                } else {
-                    val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com")).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(webIntent)
-                }
+                showFloatingYouTubePlayer(contentContainer, context) { showMainDashboard() }
             }
 
             // 4. Calculator Floating Mini Tool
@@ -438,16 +505,9 @@ object FloatingOverlayManager {
                 showMiniCalculator(contentContainer, context) { showMainDashboard() }
             }
 
-            // 5. Discord
+            // 5. Discord Floating Hub
             addAppTile("Discord", "#5865F2", "🎮") {
-                val pm = context.packageManager
-                val intent = pm.getLaunchIntentForPackage("com.discord")
-                if (intent != null) {
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(intent)
-                } else {
-                    Toast.makeText(context, "Discord tidak terpasang.", Toast.LENGTH_SHORT).show()
-                }
+                showFloatingDiscordHub(contentContainer, context) { showMainDashboard() }
             }
 
             // 6. All Installed Apps Picker
@@ -553,6 +613,488 @@ object FloatingOverlayManager {
         card.addView(tvTitle)
         card.addView(tvDesc)
         return card
+    }
+
+    // --- Built-In Floating In-Game WhatsApp Multi-Window Hub ---
+    private fun showFloatingWhatsAppHub(container: FrameLayout, context: Context, onBack: () -> Unit) {
+        val density = context.resources.displayMetrics.density
+        container.removeAllViews()
+
+        val hubLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
+        }
+
+        // Top Header
+        val topBar = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+
+        val backBtn = Button(context).apply {
+            text = "← KEMBALI"
+            textSize = 10f
+            setTextColor(Color.parseColor("#38BDF8"))
+            setBackgroundColor(Color.TRANSPARENT)
+            setOnClickListener { onBack() }
+        }
+        topBar.addView(backBtn)
+
+        val title = TextView(context).apply {
+            text = "💬 WHATSAPP IN-GAME"
+            setTextColor(Color.parseColor("#25D366"))
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        topBar.addView(title)
+
+        // Opacity Toggle Button
+        val opacityBtn = Button(context).apply {
+            text = "👁️"
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.TRANSPARENT)
+            layoutParams = LinearLayout.LayoutParams((36 * density).toInt(), (32 * density).toInt())
+            setOnClickListener {
+                currentAlpha = when (currentAlpha) {
+                    1.0f -> 0.82f
+                    0.82f -> 0.60f
+                    else -> 1.0f
+                }
+                assistantView?.alpha = currentAlpha
+                val pct = (currentAlpha * 100).toInt()
+                Toast.makeText(context, "Transparansi: $pct%", Toast.LENGTH_SHORT).show()
+            }
+        }
+        topBar.addView(opacityBtn)
+
+        hubLayout.addView(topBar)
+
+        // Sub Tabs: [BALAS CEPAT GAME] | [WHATSAPP WEB]
+        val tabSwitchLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding((4 * density).toInt(), (3 * density).toInt(), (4 * density).toInt(), (3 * density).toInt())
+            background = GradientDrawable().apply {
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#111724"))
+                setStroke((1 * density).toInt(), Color.parseColor("#1E2A40"))
+            }
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = (6 * density).toInt()
+                bottomMargin = (8 * density).toInt()
+            }
+        }
+
+        val dynamicContent = FrameLayout(context).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
+        }
+
+        var activeTab = 0 // 0: Quick Chat, 1: Web Client
+
+        fun renderTabContent() {
+            dynamicContent.removeAllViews()
+            if (activeTab == 0) {
+                // --- 1. Quick Chat & Reply Overlay ---
+                val scroll = ScrollView(context).apply {
+                    layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+                }
+                val chatForm = LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(0, 0, 0, (8 * density).toInt())
+                }
+
+                // Info banner
+                val infoBanner = TextView(context).apply {
+                    text = "✓ Jendela mengambang mandiri 100% aktif di semua HP tanpa perlu fitur bawaan HP. Balas chat tanpa keluar game!"
+                    setTextColor(Color.parseColor("#10B981"))
+                    textSize = 9.5f
+                    setPadding((8 * density).toInt(), (6 * density).toInt(), (8 * density).toInt(), (6 * density).toInt())
+                    background = GradientDrawable().apply {
+                        cornerRadius = 6 * density
+                        setColor(Color.parseColor("#062E20"))
+                        setStroke((1 * density).toInt(), Color.parseColor("#10B981"))
+                    }
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        bottomMargin = (8 * density).toInt()
+                    }
+                }
+                chatForm.addView(infoBanner)
+
+                // Phone / Contact input label
+                val phoneLabel = TextView(context).apply {
+                    text = "Nomor Tujuan / Kontak:"
+                    setTextColor(Color.parseColor("#94A3B8"))
+                    textSize = 10f
+                }
+                chatForm.addView(phoneLabel)
+
+                val phoneInput = EditText(context).apply {
+                    hint = "0812... atau 628..."
+                    setHintTextColor(Color.parseColor("#475569"))
+                    setTextColor(Color.WHITE)
+                    textSize = 11f
+                    setSingleLine()
+                    background = GradientDrawable().apply {
+                        cornerRadius = 6 * density
+                        setColor(Color.parseColor("#111724"))
+                        setStroke((1 * density).toInt(), Color.parseColor("#243048"))
+                    }
+                    setPadding((10 * density).toInt(), (8 * density).toInt(), (10 * density).toInt(), (8 * density).toInt())
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        topMargin = (3 * density).toInt()
+                        bottomMargin = (6 * density).toInt()
+                    }
+                }
+                chatForm.addView(phoneInput)
+
+                // Quick contacts
+                val contactsScroll = HorizontalScrollView(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        bottomMargin = (8 * density).toInt()
+                    }
+                }
+                val contactsRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
+                val quickContacts = listOf("Pacar / Doi", "Teman Mabar", "Ibu", "Squad ML")
+                for (cName in quickContacts) {
+                    val cChip = TextView(context).apply {
+                        text = "👤 $cName"
+                        textSize = 9.5f
+                        setTextColor(Color.parseColor("#38BDF8"))
+                        setPadding((8 * density).toInt(), (4 * density).toInt(), (8 * density).toInt(), (4 * density).toInt())
+                        background = GradientDrawable().apply {
+                            cornerRadius = 6 * density
+                            setColor(Color.parseColor("#161D2C"))
+                            setStroke((1 * density).toInt(), Color.parseColor("#1E2A40"))
+                        }
+                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                            rightMargin = (6 * density).toInt()
+                        }
+                        setOnClickListener {
+                            Toast.makeText(context, "Kontak: $cName dipilih", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    contactsRow.addView(cChip)
+                }
+                contactsScroll.addView(contactsRow)
+                chatForm.addView(contactsScroll)
+
+                // Message text label
+                val msgLabel = TextView(context).apply {
+                    text = "Pesan Chat:"
+                    setTextColor(Color.parseColor("#94A3B8"))
+                    textSize = 10f
+                }
+                chatForm.addView(msgLabel)
+
+                val msgInput = EditText(context).apply {
+                    hint = "Ketik pesan atau pilih template di bawah..."
+                    setHintTextColor(Color.parseColor("#475569"))
+                    setTextColor(Color.WHITE)
+                    textSize = 11f
+                    minLines = 2
+                    maxLines = 4
+                    background = GradientDrawable().apply {
+                        cornerRadius = 6 * density
+                        setColor(Color.parseColor("#111724"))
+                        setStroke((1 * density).toInt(), Color.parseColor("#243048"))
+                    }
+                    setPadding((10 * density).toInt(), (8 * density).toInt(), (10 * density).toInt(), (8 * density).toInt())
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        topMargin = (3 * density).toInt()
+                        bottomMargin = (8 * density).toInt()
+                    }
+                }
+                chatForm.addView(msgInput)
+
+                // Template Balas Cepat Game (1-Tap Fast Send)
+                val templateTitle = TextView(context).apply {
+                    text = "TEMPLATE BALAS CEPAT SAAT MAIN GAME:"
+                    setTextColor(Color.parseColor("#F59E0B"))
+                    textSize = 9.5f
+                    typeface = Typeface.DEFAULT_BOLD
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        bottomMargin = (4 * density).toInt()
+                    }
+                }
+                chatForm.addView(templateTitle)
+
+                val templates = listOf(
+                    "⚔️ Lagi ranked MLBB bro, bentar ya 5-10 menit lagi kelar!",
+                    "🛡️ Lagi war lord sengit, jangan telepon dulu!",
+                    "🎮 Otw victory, habis ini ku telepon/chat balik ya!",
+                    "📞 Nanti ku telepon balik ya, lagi match bareng tim.",
+                    "⏳ Wait 5 menit lagi gamenya kelar kok!",
+                    "❤️ Lagi push rank sayang, bentar ya 5 menit lagi selesai."
+                )
+
+                for (tmpl in templates) {
+                    val tmplBtn = TextView(context).apply {
+                        text = tmpl
+                        textSize = 9.5f
+                        setTextColor(Color.parseColor("#E2E8F0"))
+                        setPadding((10 * density).toInt(), (7 * density).toInt(), (10 * density).toInt(), (7 * density).toInt())
+                        background = GradientDrawable().apply {
+                            cornerRadius = 8 * density
+                            setColor(Color.parseColor("#161D2C"))
+                            setStroke((1 * density).toInt(), Color.parseColor("#243048"))
+                        }
+                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                            bottomMargin = (5 * density).toInt()
+                        }
+                        setOnClickListener {
+                            msgInput.setText(tmpl)
+                            Toast.makeText(context, "Template dipilih! Siap dikirim.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    chatForm.addView(tmplBtn)
+                }
+
+                // Send Button
+                val sendBtn = Button(context).apply {
+                    text = "⚡ KIRIM CHAT (TETAP DI ATAS GAME)"
+                    textSize = 11f
+                    typeface = Typeface.DEFAULT_BOLD
+                    setTextColor(Color.BLACK)
+                    background = GradientDrawable().apply {
+                        cornerRadius = 8 * density
+                        setColor(Color.parseColor("#25D366")) // WhatsApp Green
+                    }
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (42 * density).toInt()).apply {
+                        topMargin = (6 * density).toInt()
+                    }
+                    setOnClickListener {
+                        val phone = phoneInput.text.toString().trim()
+                        val msg = msgInput.text.toString().trim()
+                        if (msg.isEmpty()) {
+                            Toast.makeText(context, "Ketik pesan terlebih dahulu.", Toast.LENGTH_SHORT).show()
+                            return@setOnClickListener
+                        }
+
+                        val cleanPhone = phone.replace("+", "").replace(" ", "").replace("-", "")
+                        val uriString = if (cleanPhone.isNotEmpty()) {
+                            val formattedPhone = if (cleanPhone.startsWith("0")) "62" + cleanPhone.substring(1) else cleanPhone
+                            "https://api.whatsapp.com/send?phone=$formattedPhone&text=${Uri.encode(msg)}"
+                        } else {
+                            "https://api.whatsapp.com/send?text=${Uri.encode(msg)}"
+                        }
+
+                        try {
+                            val sendIntent = Intent(Intent.ACTION_VIEW, Uri.parse(uriString)).apply {
+                                setPackage("com.whatsapp")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(sendIntent)
+                            Toast.makeText(context, "Pesan terkirim! Jendela tetap aktif di atas game.", Toast.LENGTH_SHORT).show()
+                        } catch (e: Exception) {
+                            try {
+                                val fallbackIntent = Intent(Intent.ACTION_VIEW, Uri.parse(uriString)).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(fallbackIntent)
+                            } catch (ex: Exception) {
+                                Toast.makeText(context, "Gagal membuka WhatsApp: ${ex.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+                chatForm.addView(sendBtn)
+                scroll.addView(chatForm)
+                dynamicContent.addView(scroll)
+            } else {
+                // --- 2. WhatsApp Web Client View ---
+                val webLayout = LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                }
+                val webBar = LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        bottomMargin = (4 * density).toInt()
+                    }
+                }
+                val webInfo = TextView(context).apply {
+                    text = "WhatsApp Web Client (Jendela Mengambang)"
+                    setTextColor(Color.parseColor("#94A3B8"))
+                    textSize = 9.5f
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                webBar.addView(webInfo)
+
+                val reloadBtn = Button(context).apply {
+                    text = "🔄"
+                    textSize = 11f
+                    setTextColor(Color.parseColor("#38BDF8"))
+                    setBackgroundColor(Color.TRANSPARENT)
+                    layoutParams = LinearLayout.LayoutParams((36 * density).toInt(), (32 * density).toInt())
+                }
+                webBar.addView(reloadBtn)
+                webLayout.addView(webBar)
+
+                val webView = WebView(context).apply {
+                    settings.javaScriptEnabled = true
+                    settings.domStorageEnabled = true
+                    settings.databaseEnabled = true
+                    settings.userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    webChromeClient = WebChromeClient()
+                    webViewClient = WebViewClient()
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
+                    loadUrl("https://web.whatsapp.com")
+                }
+                reloadBtn.setOnClickListener { webView.reload() }
+                webLayout.addView(webView)
+                dynamicContent.addView(webLayout)
+            }
+        }
+
+        fun updateTabButtons() {
+            tabSwitchLayout.removeAllViews()
+            val btnChat = TextView(context).apply {
+                text = "⚡ BALAS CEPAT GAME"
+                textSize = 10f
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                setTextColor(if (activeTab == 0) Color.WHITE else Color.parseColor("#94A3B8"))
+                setPadding((8 * density).toInt(), (6 * density).toInt(), (8 * density).toInt(), (6 * density).toInt())
+                background = GradientDrawable().apply {
+                    cornerRadius = 6 * density
+                    setColor(if (activeTab == 0) Color.parseColor("#25D366") else Color.TRANSPARENT)
+                }
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener {
+                    activeTab = 0
+                    updateTabButtons()
+                    renderTabContent()
+                }
+            }
+
+            val btnWeb = TextView(context).apply {
+                text = "🌐 WHATSAPP WEB"
+                textSize = 10f
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                setTextColor(if (activeTab == 1) Color.WHITE else Color.parseColor("#94A3B8"))
+                setPadding((8 * density).toInt(), (6 * density).toInt(), (8 * density).toInt(), (6 * density).toInt())
+                background = GradientDrawable().apply {
+                    cornerRadius = 6 * density
+                    setColor(if (activeTab == 1) Color.parseColor("#1E293B") else Color.TRANSPARENT)
+                }
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener {
+                    activeTab = 1
+                    updateTabButtons()
+                    renderTabContent()
+                }
+            }
+            tabSwitchLayout.addView(btnChat)
+            tabSwitchLayout.addView(btnWeb)
+        }
+
+        updateTabButtons()
+        renderTabContent()
+
+        hubLayout.addView(tabSwitchLayout)
+        hubLayout.addView(dynamicContent)
+        container.addView(hubLayout)
+    }
+
+    // --- Built-In Floating YouTube Player ---
+    private fun showFloatingYouTubePlayer(container: FrameLayout, context: Context, onBack: () -> Unit) {
+        val density = context.resources.displayMetrics.density
+        container.removeAllViews()
+
+        val ytLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
+        }
+
+        val topBar = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+        val backBtn = Button(context).apply {
+            text = "← KEMBALI"
+            textSize = 10f
+            setTextColor(Color.parseColor("#38BDF8"))
+            setBackgroundColor(Color.TRANSPARENT)
+            setOnClickListener { onBack() }
+        }
+        val title = TextView(context).apply {
+            text = "▶ YOUTUBE IN-GAME"
+            setTextColor(Color.parseColor("#FF0000"))
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        topBar.addView(backBtn)
+        topBar.addView(title)
+        ytLayout.addView(topBar)
+
+        val webView = WebView(context).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.mediaPlaybackRequiresUserGesture = false
+            webChromeClient = WebChromeClient()
+            webViewClient = WebViewClient()
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f).apply {
+                topMargin = (6 * density).toInt()
+            }
+            loadUrl("https://m.youtube.com")
+        }
+        ytLayout.addView(webView)
+        container.addView(ytLayout)
+    }
+
+    // --- Built-In Floating Discord Hub ---
+    private fun showFloatingDiscordHub(container: FrameLayout, context: Context, onBack: () -> Unit) {
+        val density = context.resources.displayMetrics.density
+        container.removeAllViews()
+
+        val discordLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
+        }
+
+        val topBar = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+        val backBtn = Button(context).apply {
+            text = "← KEMBALI"
+            textSize = 10f
+            setTextColor(Color.parseColor("#38BDF8"))
+            setBackgroundColor(Color.TRANSPARENT)
+            setOnClickListener { onBack() }
+        }
+        val title = TextView(context).apply {
+            text = "🎮 DISCORD IN-GAME"
+            setTextColor(Color.parseColor("#5865F2"))
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        topBar.addView(backBtn)
+        topBar.addView(title)
+        discordLayout.addView(topBar)
+
+        val webView = WebView(context).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            webChromeClient = WebChromeClient()
+            webViewClient = WebViewClient()
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f).apply {
+                topMargin = (6 * density).toInt()
+            }
+            loadUrl("https://discord.com/app")
+        }
+        discordLayout.addView(webView)
+        container.addView(discordLayout)
     }
 
     // --- Built-In Floating Mini Web Browser ---

@@ -208,12 +208,13 @@ class BoosterForegroundService : Service() {
                 
                 // Set extremely proactive physical carrier keeping-awake durations to force Constantly Active Mode (CAM).
                 val delayMs = when (netMode) {
+                    "MLBB_SUPER_LEVEL_MAX" -> 15L // Super level maximum: continuous active carrier warming for MLBB zero delay
                     "MOBILE_EXTREME_FORCE" -> 20L // Force cellular LTE/5G modem to stay in peak active power state (Active DCH Mode)
                     "WIFI_EXTREME_WALL" -> 30L  // Force 100% TX/RX hardware power amplitude to bypass wall obstruction
-                    "WIFI_TURBO" -> 80L         // High speed profile (anti-shuttering)
-                    "WIFI_FAST" -> 180L         // Standard active pacing
-                    "MOBILE_5G" -> 150L         // Mobile peak carrier connection
-                    else -> 400L                // Balanced
+                    "WIFI_TURBO" -> 50L         // High speed profile (anti-shuttering)
+                    "WIFI_FAST" -> 120L        // Standard active pacing
+                    "MOBILE_5G" -> 100L        // Mobile peak carrier connection
+                    else -> 200L               // Balanced
                 }
 
                 try {
