@@ -582,7 +582,7 @@ fun NetworkScreen(
 
                     if (report != null) {
                         Spacer(modifier = Modifier.height(14.dp))
-                        Divider(color = DarkBorder)
+                        HorizontalDivider(color = DarkBorder)
                         Spacer(modifier = Modifier.height(14.dp))
 
                         Row(

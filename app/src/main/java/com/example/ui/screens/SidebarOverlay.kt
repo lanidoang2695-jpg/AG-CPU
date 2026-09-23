@@ -231,7 +231,7 @@ fun SidebarContentPanel(
             }
         }
 
-        Divider(color = DarkBorder.copy(alpha = 0.4f), modifier = Modifier.padding(vertical = 12.dp))
+        HorizontalDivider(color = DarkBorder.copy(alpha = 0.4f), modifier = Modifier.padding(vertical = 12.dp))
 
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -821,18 +821,18 @@ fun FloatingBrowser(context: Context) {
                     settings.builtInZoomControls = true
                     settings.displayZoomControls = false
                     settings.databaseEnabled = true
-                    settings.allowFileAccess = true
-                    settings.allowContentAccess = true
+                    settings.allowFileAccess = false
+                    settings.allowContentAccess = false
                     
                     try {
-                        settings.allowFileAccessFromFileURLs = true
-                        settings.allowUniversalAccessFromFileURLs = true
+                        settings.allowFileAccessFromFileURLs = false
+                        settings.allowUniversalAccessFromFileURLs = false
                     } catch (e: Exception) {}
                     
-                    settings.javaScriptCanOpenWindowsAutomatically = true
+                    settings.javaScriptCanOpenWindowsAutomatically = false
                     
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
                     }
                     
                     settings.userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
@@ -850,7 +850,7 @@ fun FloatingBrowser(context: Context) {
                             handler: android.webkit.SslErrorHandler?,
                             error: android.net.http.SslError?
                         ) {
-                            handler?.proceed()
+                            handler?.cancel()
                         }
                     }
                     webChromeClient = WebChromeClient()
@@ -1306,18 +1306,18 @@ fun CustomAppMockSandbox(
                             settings.builtInZoomControls = true
                             settings.displayZoomControls = false
                             settings.databaseEnabled = true
-                            settings.allowFileAccess = true
-                            settings.allowContentAccess = true
+                            settings.allowFileAccess = false
+                            settings.allowContentAccess = false
                             
                             try {
-                                settings.allowFileAccessFromFileURLs = true
-                                settings.allowUniversalAccessFromFileURLs = true
+                                settings.allowFileAccessFromFileURLs = false
+                                settings.allowUniversalAccessFromFileURLs = false
                             } catch (e: Exception) {}
                             
-                            settings.javaScriptCanOpenWindowsAutomatically = true
+                            settings.javaScriptCanOpenWindowsAutomatically = false
                             
                             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                                settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
                             }
                             
                             settings.userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
@@ -1334,7 +1334,7 @@ fun CustomAppMockSandbox(
                                     handler: android.webkit.SslErrorHandler?,
                                     error: android.net.http.SslError?
                                 ) {
-                                    handler?.proceed()
+                                    handler?.cancel()
                                 }
                             }
                             webChromeClient = WebChromeClient()

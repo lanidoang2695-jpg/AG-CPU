@@ -868,7 +868,7 @@ fun PowerAndGpuWidget(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Daya Sistem", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PureWhite)
                         }
-                        Divider(color = DarkBorder.copy(alpha = 0.2f))
+                        HorizontalDivider(color = DarkBorder.copy(alpha = 0.2f))
                         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                             Text("Status Cas", fontSize = 9.sp, color = MutedSlate)
                             Text(batteryStatus, fontSize = 9.sp, color = PureWhite, fontWeight = FontWeight.Medium)
@@ -901,7 +901,7 @@ fun PowerAndGpuWidget(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Profil GLES GPU", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PureWhite)
                         }
-                        Divider(color = DarkBorder.copy(alpha = 0.2f))
+                        HorizontalDivider(color = DarkBorder.copy(alpha = 0.2f))
                         
                         Text("Vendor", fontSize = 8.sp, color = MutedSlate)
                         Text(
@@ -975,7 +975,7 @@ fun DeviceSpecsWidget() {
                         Text(label, fontSize = 10.sp, color = MutedSlate)
                         Text(value, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PureWhite)
                     }
-                    Divider(color = DarkBorder.copy(alpha = 0.1f))
+                    HorizontalDivider(color = DarkBorder.copy(alpha = 0.1f))
                 }
             }
         }

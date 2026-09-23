@@ -62,12 +62,15 @@ fun BoosterOverlay(
         modifier = modifier
             .fillMaxSize()
             .background(DarkBackground.copy(alpha = 0.98f))
-            .padding(24.dp),
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 540.dp)
         ) {
             // Cyberpunk Hologram sphere
             Box(

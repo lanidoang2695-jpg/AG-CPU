@@ -520,6 +520,7 @@ fun GameConfigurationPanel(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 listOf(
+                    "MLBB_SUPER_LEVEL_MAX" to "⚡ LEVEL MAKSIMAL SUPER (MLBB Zero Delay 5-8ms)",
                     "AUTO" to "Pelindung Otomatis Latensi",
                     "MOBILE_EXTREME_FORCE" to "Bypass Sinyal Seluler (Kuota All Operator Tembus Tembok)",
                     "WIFI_EXTREME_WALL" to "Bypass Tembus Tembok Wi-Fi (Super Ekstrim MLBB)",
@@ -561,64 +562,128 @@ fun GameConfigurationPanel(
             Spacer(modifier = Modifier.height(16.dp))
 
             // FPS LOCK target
-            Text("Kunci Bingkai Kecepatan Target (FPS)", fontSize = 10.sp, color = MutedSlate)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Kunci Bingkai Kecepatan Target (FPS)", fontSize = 10.sp, color = MutedSlate)
+                Text("LOCK TERTINGGI", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                listOf(60, 90, 120, 144).forEach { fps ->
+                listOf(
+                    60 to "STABIL",
+                    90 to "SMOOTH",
+                    120 to "MAX ULTRA",
+                    144 to "EXTREME"
+                ).forEach { (fps, badge) ->
                     val isFSelected = profile.customFpsTarget == fps
-                    val activeColor = if (fps == 144) NeonCyan else NeonGreen
+                    val activeColor = when (fps) {
+                        144 -> NeonCyan
+                        120 -> NeonGreen
+                        90 -> NeonYellow
+                        else -> NeonCyan
+                    }
                     Card(
                         onClick = { onFpsTargetChange(fps) },
                         modifier = Modifier
                             .weight(1f)
                             .border(
-                                width = 1.dp,
+                                width = if (isFSelected) 1.5.dp else 1.dp,
                                 color = if (isFSelected) activeColor else DarkBorder.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(8.dp)
                             ),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isFSelected) activeColor.copy(alpha = 0.08f) else DarkBackground.copy(alpha = 0.3f)
+                            containerColor = if (isFSelected) activeColor.copy(alpha = 0.12f) else DarkBackground.copy(alpha = 0.3f)
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = if (fps == 144) "144 FPS" else "$fps FPS",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
+                                text = "$fps FPS",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
                                 color = if (isFSelected) activeColor else MutedSlate
                             )
-                            if (fps == 144) {
-                                Text(
-                                    text = "IPHONE STABIL",
-                                    fontSize = 6.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isFSelected) NeonCyan else MutedSlate.copy(alpha = 0.5f)
-                                )
-                            }
+                            Text(
+                                text = badge,
+                                fontSize = 7.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isFSelected) activeColor else MutedSlate.copy(alpha = 0.6f)
+                            )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Presets for Low-End HP Kentang
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(NeonGreen.copy(alpha = 0.08f))
+                    .border(1.dp, NeonGreen.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                    .padding(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "STABILISASI KHUSUS HP KENTANG",
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NeonGreen
+                            )
+                        }
+                        Text(
+                            text = "Paksa CPU max, bersihkan total RAM 100%, render buffer 0ms anti-patah patah",
+                            fontSize = 8.sp,
+                            color = MutedSlate
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            onModeChange("PERFORMANCE")
+                            onFpsTargetChange(120)
+                            onNetworkModeChange("MLBB_SUPER_LEVEL_MAX")
+                        },
+                        shape = RoundedCornerShape(6.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonGreen),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.height(28.dp)
+                    ) {
+                        Text("TERAPKAN", fontSize = 8.5.sp, fontWeight = FontWeight.Black, color = DarkBackground)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Performance spec listing
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Kunci Bingkai Gambar Maks", fontSize = 10.sp, color = MutedSlate)
-                Text("${profile.customFpsTarget} FPS (KUNCI)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
+                Text("${profile.customFpsTarget} FPS (TERKUNCI MAKS)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
             }
-            Divider(color = DarkBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(color = DarkBorder.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Pembersih Memori Sisi Latar", fontSize = 10.sp, color = MutedSlate)
-                Text("Otomatis Aktif", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
+                Text("Otomatis Aktif & Agresif", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
             }
-            Divider(color = DarkBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(color = DarkBorder.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Level Isolasi Utas Eksekusi", fontSize = 10.sp, color = MutedSlate)
                 Text("Maksimal Utas (SCHED_FIFO)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonYellow)
@@ -968,7 +1033,7 @@ fun ScreenSensitivityPanel(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            Divider(color = DarkBorder.copy(alpha = 0.1f))
+            HorizontalDivider(color = DarkBorder.copy(alpha = 0.1f))
             Spacer(modifier = Modifier.height(12.dp))
 
             // 4. Touch Stabilizer Switch

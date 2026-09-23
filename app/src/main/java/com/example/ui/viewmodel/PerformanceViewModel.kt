@@ -1428,23 +1428,20 @@ class PerformanceViewModel(
         // 7. Inject hardware scale touch/animation optimizations
         applySystemTouchTuning()
 
-        // 8. Auto-start background high-frequency keepalive service for wireless low-latency profiles
-        val currentNetMode = _selectedNetworkMode.value
-        if (currentNetMode == "WIFI_TURBO" || currentNetMode == "WIFI_EXTREME_WALL" || currentNetMode == "WIFI_FAST") {
-            try {
-                val intent = Intent(context, com.example.service.BoosterForegroundService::class.java).apply {
-                    action = com.example.service.BoosterForegroundService.ACTION_START_TURBO
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(intent)
-                } else {
-                    context.startService(intent)
-                }
-                _wifiTurboSelected.value = true
-                prefs.edit().putBoolean("wifi_turbo", true).apply()
-            } catch (e: Exception) {
-                Log.e("PerformanceViewModel", "Auto-starting booster service failed", e)
+        // 8. Auto-start background high-frequency keepalive service for network lock and zero-latency profiles
+        try {
+            val intent = Intent(context, com.example.service.BoosterForegroundService::class.java).apply {
+                action = com.example.service.BoosterForegroundService.ACTION_START_TURBO
             }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+            _wifiTurboSelected.value = true
+            prefs.edit().putBoolean("wifi_turbo", true).apply()
+        } catch (e: Exception) {
+            Log.e("PerformanceViewModel", "Auto-starting booster service failed", e)
         }
     }
 

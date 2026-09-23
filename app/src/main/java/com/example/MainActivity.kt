@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -138,7 +139,7 @@ fun MainAppLayout(viewModel: PerformanceViewModel) {
                         )
                     }
                 }
-                Divider(color = DarkBorder.copy(alpha = 0.5f))
+                HorizontalDivider(color = DarkBorder.copy(alpha = 0.5f))
             }
         },
         bottomBar = {
@@ -183,22 +184,29 @@ fun MainAppLayout(viewModel: PerformanceViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(DarkBackground)
+                .background(DarkBackground),
+            contentAlignment = Alignment.TopCenter
         ) {
-            // Transitions between pages
-            AnimatedContent(
-                targetState = selectedTab,
-                transitionSpec = {
-                    fadeIn() + scaleIn(initialScale = 0.98f) togetherWith fadeOut()
-                },
-                label = "TabTransition"
-            ) { tab ->
-                when (tab) {
-                    NavigationTab.DASHBOARD -> DashboardScreen(viewModel = viewModel)
-                    NavigationTab.SYSTEM -> DeepInfoScreen(viewModel = viewModel)
-                    NavigationTab.NETWORK -> NetworkScreen(viewModel = viewModel)
-                    NavigationTab.BOOSTER -> GamingBoosterScreen(viewModel = viewModel)
-                    NavigationTab.CACHE -> CacheCleanerScreen(viewModel = viewModel)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 640.dp)
+            ) {
+                // Transitions between pages
+                AnimatedContent(
+                    targetState = selectedTab,
+                    transitionSpec = {
+                        fadeIn() + scaleIn(initialScale = 0.98f) togetherWith fadeOut()
+                    },
+                    label = "TabTransition"
+                ) { tab ->
+                    when (tab) {
+                        NavigationTab.DASHBOARD -> DashboardScreen(viewModel = viewModel)
+                        NavigationTab.SYSTEM -> DeepInfoScreen(viewModel = viewModel)
+                        NavigationTab.NETWORK -> NetworkScreen(viewModel = viewModel)
+                        NavigationTab.BOOSTER -> GamingBoosterScreen(viewModel = viewModel)
+                        NavigationTab.CACHE -> CacheCleanerScreen(viewModel = viewModel)
+                    }
                 }
             }
 

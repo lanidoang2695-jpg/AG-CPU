@@ -81,7 +81,7 @@ fun DeepInfoScreen(
             containerColor = SurfaceSlate,
             contentColor = NeonCyan,
             edgePadding = 12.dp,
-            divider = { Divider(color = DarkBorder.copy(alpha = 0.2f)) },
+            divider = { HorizontalDivider(color = DarkBorder.copy(alpha = 0.2f)) },
             indicator = { tabPositions ->
                 if (tabPositions.isNotEmpty()) {
                     Box(
@@ -378,7 +378,7 @@ fun SensorSpecCard(sensor: Sensor) {
             
             if (expanded) {
                 Spacer(modifier = Modifier.height(10.dp))
-                Divider(color = DarkBorder.copy(alpha = 0.15f))
+                HorizontalDivider(color = DarkBorder.copy(alpha = 0.15f))
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
