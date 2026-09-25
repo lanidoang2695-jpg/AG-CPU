@@ -32,6 +32,13 @@ import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.Manifest
+import android.content.pm.PackageManager
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import com.example.util.VoiceProfile
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -148,138 +155,19 @@ fun GamingBoosterScreen(
                 ScreenSensitivityPanel(viewModel = viewModel)
             }
 
-            // In-Game Floating Assistant & Multi-Window Controller Card
+            // 1. Fitur Peredam Kebisingan On-Mic Game (AI & DSP Noise Suppression)
             item {
-                val context = LocalContext.current
-                val floatingOverlayEnabled by viewModel.floatingOverlayEnabled.collectAsState()
-                val hasOverlayPermission = remember { com.example.util.FloatingOverlayManager.canDrawOverlays(context) }
+                MicNoiseReducerCard(viewModel = viewModel)
+            }
 
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardSlate),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, if (floatingOverlayEnabled) NeonCyan.copy(alpha = 0.5f) else DarkBorder)
-                ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(if (floatingOverlayEnabled) NeonCyan.copy(alpha = 0.15f) else SurfaceSlate),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.FavoriteBorder,
-                                        contentDescription = null,
-                                        tint = if (floatingOverlayEnabled) NeonCyan else MutedSlate,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
+            // 2. Fitur Pengubah Suara Game (Voice Changer Pro)
+            item {
+                GameVoiceChangerCard(viewModel = viewModel)
+            }
 
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column {
-                                    Text(
-                                        text = "JENDELA MENGAMBANG GAME",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (floatingOverlayEnabled) NeonCyan else PureWhite,
-                                        letterSpacing = 0.5.sp
-                                    )
-                                    Text(
-                                        text = "Buka WhatsApp, Google, Crosshair & RAM cleaner saat di game",
-                                        fontSize = 9.sp,
-                                        color = MutedSlate
-                                    )
-                                }
-                            }
-
-                            Switch(
-                                checked = floatingOverlayEnabled,
-                                onCheckedChange = { enabled ->
-                                    if (enabled && !hasOverlayPermission) {
-                                        val intent = Intent(
-                                            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                            Uri.parse("package:${context.packageName}")
-                                        ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
-                                        try { context.startActivity(intent) } catch (e: Exception) {}
-                                    }
-                                    viewModel.toggleFloatingOverlay(enabled)
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = NeonCyan,
-                                    checkedTrackColor = NeonCyan.copy(alpha = 0.35f),
-                                    uncheckedThumbColor = MutedSlate,
-                                    uncheckedTrackColor = SurfaceSlate
-                                )
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        if (!hasOverlayPermission) {
-                            Button(
-                                onClick = {
-                                    val intent = Intent(
-                                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                        Uri.parse("package:${context.packageName}")
-                                    ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
-                                    try { context.startActivity(intent) } catch (e: Exception) {}
-                                },
-                                modifier = Modifier.fillMaxWidth().height(42.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = NeonOrange)
-                            ) {
-                                Text(
-                                    text = "IZINKAN TAMPIL DI ATAS APLIKASI LAIN",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DarkBackground
-                                )
-                            }
-                        } else {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                OutlinedButton(
-                                    onClick = {
-                                        com.example.util.FloatingOverlayManager.showFloatingOverlay(context)
-                                    },
-                                    modifier = Modifier.weight(1f).height(42.dp),
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = NeonCyan),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f))
-                                ) {
-                                    Text("BUKA / UJI FLOATING", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                }
-
-                                OutlinedButton(
-                                    onClick = {
-                                        com.example.util.FloatingOverlayManager.toggleCrosshair(context)
-                                    },
-                                    modifier = Modifier.weight(1f).height(42.dp),
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = NeonGreen),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen.copy(alpha = 0.5f))
-                                ) {
-                                    Text("CROSSHAIR AIM", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
-                    }
-                }
+            // 3. Stabilisasi FPS & Eliminasi Patah-Patah (Anti-Stutter Frame Pacing)
+            item {
+                FpsStabilizerCard(viewModel = viewModel)
             }
 
             // Big Glowing START BOOST button
@@ -1319,3 +1207,639 @@ fun ScreenSensitivityPanel(
         }
     }
 }
+
+@Composable
+fun MicNoiseReducerCard(viewModel: PerformanceViewModel) {
+    val context = LocalContext.current
+    val isNoiseSuppression by viewModel.isNoiseSuppressionEnabled.collectAsState()
+    val noiseGateLevel by viewModel.noiseGateThresholdLevel.collectAsState()
+    val isVoiceActive by viewModel.isVoiceEngineActive.collectAsState()
+    val micDb by viewModel.micDecibel.collectAsState()
+    val waveform by viewModel.audioWaveform.collectAsState()
+    val hasHardwareSupport by viewModel.hardwareSuppressorSupported.collectAsState()
+
+    var hasMicPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasMicPermission = granted
+        if (granted) {
+            viewModel.toggleVoiceEngine(liveMonitor = false)
+            Toast.makeText(context, "Izin Mic Diberikan! Peredam Kebisingan Aktif.", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Izin Mic dibutuhkan untuk menyaring kebisingan suara game.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardSlate),
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (isNoiseSuppression) NeonCyan.copy(alpha = 0.5f) else DarkBorder)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(if (isNoiseSuppression) NeonCyan.copy(alpha = 0.15f) else SurfaceSlate),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "🎙️", fontSize = 20.sp)
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "PEREDAM KEBISINGAN MIC",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isNoiseSuppression) NeonCyan else PureWhite,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(NeonGreen.copy(alpha = 0.15f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "100% SEMUA HP",
+                                    fontSize = 7.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeonGreen
+                                )
+                            }
+                        }
+                        Text(
+                            text = "Filter desis kipas, hembusan nafas, TV & suara latar game",
+                            fontSize = 9.sp,
+                            color = MutedSlate
+                        )
+                    }
+                }
+
+                Switch(
+                    checked = isNoiseSuppression,
+                    onCheckedChange = { enabled ->
+                        if (!hasMicPermission) {
+                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        } else {
+                            viewModel.setNoiseSuppression(enabled)
+                            if (enabled && !isVoiceActive) {
+                                viewModel.toggleVoiceEngine(liveMonitor = false)
+                            }
+                        }
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = NeonCyan,
+                        checkedTrackColor = NeonCyan.copy(alpha = 0.35f),
+                        uncheckedThumbColor = MutedSlate,
+                        uncheckedTrackColor = SurfaceSlate
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Tech specs badge
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(SurfaceSlate)
+                    .border(1.dp, DarkBorder, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = if (hasHardwareSupport) "✓ Hardware DSP + AI Gate Aktif" else "✓ Universal High-Pass DSP Gate (100% HP)",
+                    fontSize = 8.5.sp,
+                    color = NeonGreen,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "High-Pass 150Hz Filter",
+                    fontSize = 8.sp,
+                    color = MutedSlate
+                )
+            }
+
+            if (isNoiseSuppression) {
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Threshold Strength Slider
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Sensitivitas Reduksi Kebisingan:",
+                        fontSize = 9.sp,
+                        color = PureWhite,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "$noiseGateLevel%",
+                        fontSize = 9.sp,
+                        color = NeonCyan,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Slider(
+                    value = noiseGateLevel.toFloat(),
+                    onValueChange = { viewModel.setNoiseGateThreshold(it.toInt()) },
+                    valueRange = 20f..95f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = NeonCyan,
+                        activeTrackColor = NeonCyan,
+                        inactiveTrackColor = DarkBorder
+                    )
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "Ringan (30%)", fontSize = 8.sp, color = MutedSlate)
+                    Text(text = "Sedang / Standar (65%)", fontSize = 8.sp, color = NeonCyan)
+                    Text(text = "Maksimal Anti-Kipas (85%)", fontSize = 8.sp, color = NeonGreen)
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Live Audio Level & Waveform visualizer
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(DarkBackground)
+                        .border(1.dp, DarkBorder, RoundedCornerShape(10.dp))
+                        .padding(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "LIVE MIC SPEECH MONITOR:",
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MutedSlate,
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            text = if (isVoiceActive) "${micDb.toInt()} dB" else "MIC STANDBY",
+                            fontSize = 9.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            color = if (micDb > -30f) NeonGreen else if (micDb > -50f) NeonCyan else MutedSlate
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 16-bar Animated Waveform
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(28.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        waveform.forEach { level ->
+                            val barHeight = (level * 28).coerceIn(3f, 28f)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(barHeight.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(
+                                        if (level > 0.6f) NeonGreen
+                                        else if (level > 0.25f) NeonCyan
+                                        else MutedSlate.copy(alpha = 0.35f)
+                                    )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GameVoiceChangerCard(viewModel: PerformanceViewModel) {
+    val context = LocalContext.current
+    val isVoiceActive by viewModel.isVoiceEngineActive.collectAsState()
+    val isLiveMonitoring by viewModel.isLiveMonitoring.collectAsState()
+    val activeProfile by viewModel.activeVoiceProfile.collectAsState()
+    val isRecordingClip by viewModel.isRecordingClip.collectAsState()
+    val isPlayingClip by viewModel.isPlayingRecordedClip.collectAsState()
+    val hasRecordedClip by viewModel.hasRecordedClip.collectAsState()
+
+    var hasMicPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasMicPermission = granted
+        if (granted) {
+            viewModel.toggleVoiceEngine(liveMonitor = true)
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardSlate),
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (isVoiceActive) NeonGreen.copy(alpha = 0.5f) else DarkBorder)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(if (isVoiceActive) NeonGreen.copy(alpha = 0.15f) else SurfaceSlate),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "🎭", fontSize = 20.sp)
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "PENGUBAH SUARA GAME",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isVoiceActive) NeonGreen else PureWhite,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(NeonGreen.copy(alpha = 0.15f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "WORT IT",
+                                    fontSize = 7.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeonGreen
+                                )
+                            }
+                        }
+                        Text(
+                            text = "Efek suara vokal instan saat on-mic game & Discord",
+                            fontSize = 9.sp,
+                            color = MutedSlate
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Preset Grid
+            Text(
+                text = "PILIH EFEK SUARA VOKAL:",
+                fontSize = 8.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = MutedSlate,
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                VoiceProfile.values().toList().chunked(2).forEach { rowItems ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        rowItems.forEach { profile ->
+                            val isSelected = activeProfile == profile
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSelected) NeonGreen.copy(alpha = 0.15f) else SurfaceSlate)
+                                    .border(
+                                        1.dp,
+                                        if (isSelected) NeonGreen else DarkBorder,
+                                        RoundedCornerShape(10.dp)
+                                    )
+                                    .clickable { viewModel.setVoiceProfile(profile) }
+                                    .padding(10.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(text = profile.icon, fontSize = 18.sp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            text = profile.title,
+                                            fontSize = 9.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) NeonGreen else PureWhite
+                                        )
+                                        Text(
+                                            text = profile.subtitle,
+                                            fontSize = 7.5.sp,
+                                            color = MutedSlate,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        if (rowItems.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Action Buttons: Tes Suara Langsung & Rekam 5 Detik
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Live Loopback Test Button
+                Button(
+                    onClick = {
+                        if (!hasMicPermission) {
+                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        } else {
+                            viewModel.toggleVoiceEngine(liveMonitor = !isLiveMonitoring)
+                            Toast.makeText(
+                                context,
+                                if (!isVoiceActive) "🎧 Tes Suara Langsung Aktif! Pasang headset untuk dengar efeknya." else "Tes suara dihentikan.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    modifier = Modifier.weight(1f).height(44.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isLiveMonitoring) NeonGreen else SurfaceSlate
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isLiveMonitoring) NeonGreen else DarkBorder)
+                ) {
+                    Text(
+                        text = if (isLiveMonitoring) "🎧 HENTIKAN TES" else "🎧 TES LIVE (HEADSET)",
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isLiveMonitoring) Color.Black else PureWhite
+                    )
+                }
+
+                // 5-Sec Clip Recording & Playback
+                Button(
+                    onClick = {
+                        if (!hasMicPermission) {
+                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        } else {
+                            if (isRecordingClip) {
+                                viewModel.stopRecordingClip()
+                                Toast.makeText(context, "Rekaman selesai! Ketuk Putar untuk dengar.", Toast.LENGTH_SHORT).show()
+                            } else if (hasRecordedClip && !isPlayingClip) {
+                                viewModel.playRecordedClip()
+                            } else {
+                                viewModel.startRecordingClip()
+                                Toast.makeText(context, "Merekam suara 5 detik... Silakan bicara!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    modifier = Modifier.weight(1f).height(44.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isRecordingClip) NeonOrange else if (isPlayingClip) NeonCyan else SurfaceSlate
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (isRecordingClip) NeonOrange else if (isPlayingClip) NeonCyan else DarkBorder
+                    )
+                ) {
+                    Text(
+                        text = when {
+                            isRecordingClip -> "⏹️ STOP REKAM"
+                            isPlayingClip -> "🔊 MEMUTAR..."
+                            hasRecordedClip -> "▶ DENGAR HASIL"
+                            else -> "🎙️ REKAM 5 DETIK"
+                        },
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isRecordingClip || isPlayingClip) Color.Black else PureWhite
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FpsStabilizerCard(viewModel: PerformanceViewModel) {
+    val context = LocalContext.current
+    val fpsStabilizerActive by viewModel.fpsStabilizerActive.collectAsState()
+    val targetFps by viewModel.targetFps.collectAsState()
+    val stutterCount by viewModel.stutterCount.collectAsState()
+    val frameScore by viewModel.framePacingScore.collectAsState()
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardSlate),
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (fpsStabilizerActive) NeonYellow.copy(alpha = 0.5f) else DarkBorder)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(if (fpsStabilizerActive) NeonYellow.copy(alpha = 0.15f) else SurfaceSlate),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "🎯", fontSize = 20.sp)
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "STABILISASI FPS & ANTI-STUTTER",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (fpsStabilizerActive) NeonYellow else PureWhite,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(NeonYellow.copy(alpha = 0.15f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "10000% MAX",
+                                    fontSize = 7.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NeonYellow
+                                )
+                            }
+                        }
+                        Text(
+                            text = "Hilangkan patah-patah & kunci pacing frame display",
+                            fontSize = 9.sp,
+                            color = MutedSlate
+                        )
+                    }
+                }
+
+                Switch(
+                    checked = fpsStabilizerActive,
+                    onCheckedChange = { viewModel.toggleFpsStabilizer() },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = NeonYellow,
+                        checkedTrackColor = NeonYellow.copy(alpha = 0.35f),
+                        uncheckedThumbColor = MutedSlate,
+                        uncheckedTrackColor = SurfaceSlate
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Target FPS Selector
+            Text(
+                text = "TARGET FRAME RATE (FPS LOCK):",
+                fontSize = 8.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = MutedSlate,
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(60, 90, 120, 144).forEach { fpsValue ->
+                    val isSelected = targetFps == fpsValue
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isSelected) NeonYellow.copy(alpha = 0.15f) else SurfaceSlate)
+                            .border(1.dp, if (isSelected) NeonYellow else DarkBorder, RoundedCornerShape(8.dp))
+                            .clickable { viewModel.setTargetFps(fpsValue) }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "$fpsValue FPS",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSelected) NeonYellow else PureWhite
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Frame Pacing Status Pill
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(DarkBackground)
+                    .border(1.dp, DarkBorder, RoundedCornerShape(8.dp))
+                    .padding(10.dp),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = "$stutterCount", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
+                    Text(text = "MICRO-STUTTER", fontSize = 8.sp, color = MutedSlate)
+                }
+                VerticalDivider(modifier = Modifier.height(24.dp), color = DarkBorder)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = "${frameScore}%", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
+                    Text(text = "FRAME PACING", fontSize = 8.sp, color = MutedSlate)
+                }
+                VerticalDivider(modifier = Modifier.height(24.dp), color = DarkBorder)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = "URGENT DISPLAY", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeonYellow)
+                    Text(text = "PRIORITAS THREAD", fontSize = 8.sp, color = MutedSlate)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Action: Purge RAM & Lock Display Priority
+            Button(
+                onClick = {
+                    viewModel.purgeMemoryAndStabilize()
+                    Toast.makeText(
+                        context,
+                        "⚡ Frame Pacing Dikunci! Background cache dibersihkan, stutter dieliminasi.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                },
+                modifier = Modifier.fillMaxWidth().height(42.dp),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = NeonYellow.copy(alpha = 0.2f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, NeonYellow)
+            ) {
+                Text(
+                    text = "⚡ BERSIHKAN CACHE & HILANGKAN PATAH-PATAH",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = NeonYellow
+                )
+            }
+        }
+    }
+}
+
